@@ -1,6 +1,6 @@
+import type { JSX } from "react";
 import { ASSET_CONFIG } from "../config";
 import type { IconProps } from "../type";
-import type { JSX } from "react";
 
 function CategoryIcon(opt: IconProps): JSX.Element {
   const { className, fill, height, width } = {

@@ -1,5 +1,5 @@
-import { ASSET_CONFIG } from '@repo/assets/config'
-import type { IconProps } from '@repo/assets/type'
+import { ASSET_CONFIG } from "../config";
+import type { IconProps } from "../type";
 
 function MonitorIcon (opt: IconProps = {}) {
   const { fill = 'black', className } = {

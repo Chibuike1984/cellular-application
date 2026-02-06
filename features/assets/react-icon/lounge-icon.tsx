@@ -1,6 +1,6 @@
-import { ASSET_CONFIG } from '@repo/assets/config'
-import type { IconProps } from '@repo/assets/type'
 import type { JSX } from 'react'
+import { ASSET_CONFIG } from "../config";
+import type { IconProps } from "../type";
 
 function LoungeIcon (opt: IconProps): JSX.Element {
   const { className, height, width } = {

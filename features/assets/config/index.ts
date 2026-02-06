@@ -1,4 +1,4 @@
-import type { IconProps } from "type";
+import type { IconProps } from "../type";
 
 const ASSET_CONFIG = {
   className: "hover:text-white",

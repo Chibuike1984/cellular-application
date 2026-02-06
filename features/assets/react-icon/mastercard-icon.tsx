@@ -2,7 +2,7 @@ import { ASSET_CONFIG } from "../config";
 import type { IconProps } from "../type";
 
 function MastercardIcon(opt: IconProps = {}) {
-  const { className, fill, height, width } = {
+  const { className, height, width } = {
     ...ASSET_CONFIG,
     ...opt,
   };
