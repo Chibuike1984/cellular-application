@@ -25,6 +25,8 @@ import { WishlistIcon } from "@/features/assets/react-icon/wishlist-icon";
 import { CustomerCentreIcon } from "@/features/assets/react-icon/customer-icon";
 import { DirectoryIcon } from "@/features/assets/react-icon/directory-icon";
 import { FeedbackReviewIcon } from "@/features/assets/react-icon/feedback-icon";
+import { PlugIcon } from "@/features/assets/react-icon/requisition-icon";
+// import { CategoryIcon } from "@/features/assets/react-icon/category-icon";
 import { BsBarChart } from "react-icons/bs";
 import type { SidebarConfig } from "../types/type";
 
@@ -141,6 +143,34 @@ const SIDEBAR_CONFIG = [
       },
     ],
     exact: false,
+  },
+
+  {
+    name: "Requisition",
+    icon: PlugIcon,
+    exact: false,
+    items: [
+      {
+        icon: CategoryIcon,
+        name: "My Request",
+        slug: "/dashboard/my-request",
+      },
+      {
+        icon: BsBarChart,
+        name: "Departmental Requests",
+        slug: "/dashboard/departmental-requests",
+      },
+      {
+        icon: BsBarChart,
+        name: "Returns",
+        slug: "/dashboard/returns",
+      },
+      {
+        icon: BsBarChart,
+        name: "Approvals",
+        slug: "/dashboard/approvals",
+      },
+    ],
   },
 
   {
