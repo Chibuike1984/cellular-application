@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import {
     Bell,
     Download,
@@ -127,12 +127,16 @@ export function MyRequest() {
         return item.status.toLowerCase() === selectedTab.toLowerCase();
     });
 
-    // Inject Breadcrumb
-
-    setBreadcrumbs([{ href: "", label: "Requisition" }, {
-        href: "",
-        label: "My Requests",
-    }]);
+    // Inject Breadcrumb - Update breadcrumbs when component mounts
+    useEffect(() => {
+        // Wrap in startTransition to keep the old UI responsive during the change
+        startTransition(() => {
+            setBreadcrumbs([
+                { href: "/dashboard", label: "Requisition" }, // ← use real href if possible
+                { href: "/requisition/my-requests", label: "My Requests" },
+            ]);
+        });
+    }, [setBreadcrumbs]);
 
     return (
         <div style={{ fontFamily: "Poppins" }}>
