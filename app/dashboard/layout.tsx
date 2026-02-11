@@ -1,4 +1,3 @@
-import { TopHeader } from "@/components/cells-ui/header";
 import { AppSidebar } from "@/components/cells-ui/sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import type { PropsWithChildren } from "react";
@@ -8,10 +7,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className="relative bg-inherit">
-        <div className="min-h-screen">
-          <TopHeader />
-          {children}
-        </div>
+        {children}
       </SidebarInset>
     </SidebarProvider>
   );
