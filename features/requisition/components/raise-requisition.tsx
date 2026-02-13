@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
     AlertTriangle,
     ArrowLeft,
@@ -27,6 +28,7 @@ import { EditLinkIcon } from "@features/assets/react-icon/repair-icon";
 import { MobileDeviceIcon } from "@features/assets/react-icon/kitchen-icon";
 import { SupportIcon } from "@features/assets/react-icon/access-icon";
 import Link from "next/link";
+import { useRequisitionStore } from "@/lib/stores/requisition-store";
 
 interface RequisitionItem {
     id: string;
@@ -124,6 +126,9 @@ const requisitionTypesByDepartment: Record<
 };
 
 export function RaiseRequisition() {
+    const router = useRouter();
+    const { addRequest } = useRequisitionStore();
+
     const [selectedDepartment, setSelectedDepartment] = useState<string>(
         "inventory",
     );
@@ -213,8 +218,6 @@ export function RaiseRequisition() {
         },
     ]);
 
-    const [addNotesText, setAddNotesText] = useState("");
-
     const availableRequisitionTypes =
         requisitionTypesByDepartment[selectedDepartment] || [];
 
@@ -298,6 +301,37 @@ export function RaiseRequisition() {
     const usesFormLayout = isHRDepartment || isFinanceDepartment ||
         isITDepartment;
 
+    const handleSubmitRequest = () => {
+        if (usesFormLayout) return; // These are handled by their respective forms
+
+        if (currentItems.length === 0) {
+            // Can be replaced with a toast notification
+            alert("Please add at least one item to the requisition.");
+            return;
+        }
+
+        const deptLabel = departments.find(d => d.id === selectedDepartment)?.label || "General";
+        const typeLabel = availableRequisitionTypes.find(t => t.id === selectedRequisitionType)?.label || "Requisition";
+
+        // Improve item summary
+        const itemSummary = currentItems.length > 2
+            ? `${currentItems[0].itemName}, ${currentItems[1].itemName} +${currentItems.length - 2} more`
+            : currentItems.map(i => i.itemName).join(", ");
+
+        const newRequest = {
+            id: `#${Math.floor(Math.random() * 10000)}`,
+            department: deptLabel,
+            items: itemSummary,
+            category: typeLabel,
+            orderLevels: "Normal", // Or derive from items' urgency logic
+            status: "Pending" as const,
+            date: new Date(),
+        };
+
+        addRequest(newRequest);
+        router.push("/dashboard/my-request");
+    };
+
     return (
         <div>
             <div>
@@ -364,18 +398,16 @@ export function RaiseRequisition() {
                                         fontWeight: "400",
                                         lineHeight: "100%",
                                     }}
-                                    className={`px-3 py-1 rounded-lg flex items-center gap-2 ${
-                                        selectedDepartment === dept.id
+                                    className={`px-3 py-1 rounded-lg flex items-center gap-2 ${selectedDepartment === dept.id
                                             ? "bg-orange-25 text-neutral-black border border-grey-200"
                                             : "bg-white border border-grey-200 text-neutral-black hover:border-grey-300"
-                                    }`}
+                                        }`}
                                 >
                                     <span
-                                        className={`${
-                                            selectedDepartment === dept.id
+                                        className={`${selectedDepartment === dept.id
                                                 ? "bg-orange-500 text-white rounded-md p-1"
                                                 : "bg-[#E6E6E6] rounded-md p-1"
-                                        }`}
+                                            }`}
                                     >
                                         {dept.icon}
                                     </span>
@@ -403,18 +435,16 @@ export function RaiseRequisition() {
                                     key={type.id}
                                     onClick={() =>
                                         setSelectedRequisitionType(type.id)}
-                                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                                        selectedRequisitionType === type.id
+                                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${selectedRequisitionType === type.id
                                             ? "bg-orange-25 text-neutral-black border border-grey-200"
                                             : "bg-white border border-grey-200 text-neutral-black hover:border-grey-300"
-                                    }`}
+                                        }`}
                                 >
                                     <span
-                                        className={`${
-                                            selectedRequisitionType === type.id
+                                        className={`${selectedRequisitionType === type.id
                                                 ? "bg-orange-500 text-white rounded-md p-1"
                                                 : "bg-[#E6E6E6] rounded-md p-1"
-                                        }`}
+                                            }`}
                                     >
                                         {type.icon}
                                     </span>
@@ -453,80 +483,44 @@ export function RaiseRequisition() {
                             </div>
                         )
                         : usesFormLayout
-                        ? (
-                            <div className="gap-6 mb-8">
-                                {isHRDepartment && (
-                                    <HRRequestForm
-                                        requisitionType={selectedRequisitionType}
-                                    />
-                                )}
-                                {isFinanceDepartment && (
-                                    <FinanceRequestForm
-                                        requisitionType={selectedRequisitionType}
-                                    />
-                                )}
-                                {isITDepartment && (
-                                    <ITRequestForm
-                                        requisitionType={selectedRequisitionType}
-                                    />
-                                )}
-                            </div>
-                        )
-                        : (
-                            <div className="grid grid-cols-3 gap-6 mb-8">
-                                <div className="col-span-1">
-                                    <AddItemsPanel
-                                        onAddItem={handleAddItem}
-                                        requisitionType={selectedRequisitionType}
-                                    />
+                            ? (
+                                <div className="gap-6 mb-8">
+                                    {isHRDepartment && (
+                                        <HRRequestForm
+                                            requisitionType={selectedRequisitionType}
+                                        />
+                                    )}
+                                    {isFinanceDepartment && (
+                                        <FinanceRequestForm
+                                            requisitionType={selectedRequisitionType}
+                                        />
+                                    )}
+                                    {isITDepartment && (
+                                        <ITRequestForm
+                                            requisitionType={selectedRequisitionType}
+                                        />
+                                    )}
                                 </div>
-                                <div className="col-span-2">
-                                    <PurchaseRequestTable
-                                        items={currentItems}
-                                        onRemoveItem={handleRemoveItem}
-                                        onUpdateItem={handleUpdateItem}
-                                        requisitionType={selectedRequisitionType}
-                                    />
+                            )
+                            : (
+                                <div className="grid grid-cols-3 gap-6 mb-8">
+                                    <div className="col-span-1">
+                                        <AddItemsPanel
+                                            onAddItem={handleAddItem}
+                                            requisitionType={selectedRequisitionType}
+                                        />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <PurchaseRequestTable
+                                            items={currentItems}
+                                            onRemoveItem={handleRemoveItem}
+                                            onUpdateItem={handleUpdateItem}
+                                            requisitionType={selectedRequisitionType}
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    {
-                        /* {selectedRequisitionType && !usesFormLayout && (
-            <>
-              {* Add Notes Section *}
-              <div className='mb-8 p-6 bg-white'>
-                <h3 className='text-sm font-semibold text-gray-900 mb-4'>
-                  Add Notes
-                </h3>
-                <Textarea
-                  placeholder='Add any additional notes...'
-                  value={addNotesText}
-                  onChange={e => setAddNotesText(e.target.value)}
-                  className='min-h-24 resize-none'
-                />
-              </div>
-            </>
-          )} */
-                    }
+                            )}
                 </div>
-
-                {
-                    /* {selectedRequisitionType && !usesFormLayout && (
-          <>
-            <Card className='mb-8 p-6 bg-white border border-gray-200'>
-              <h3 className='text-sm font-semibold text-gray-900 mb-4'>
-                Add Notes
-              </h3>
-              <Textarea
-                placeholder='Add any additional notes...'
-                value={addNotesText}
-                onChange={e => setAddNotesText(e.target.value)}
-                className='min-h-24 resize-none'
-              />
-            </Card>
-          </>
-        )} */
-                }
 
                 {/* Footer Buttons */}
                 <div className="flex justify-between items-center bg-white border rounded-bl-md rounded-br-md border-[#E6E6E6] h-[70px] px-4">
@@ -539,15 +533,28 @@ export function RaiseRequisition() {
                         </Button>
                     </Link>
                     <div className="flex gap-3">
-                        <Button
-                            variant="secondary"
-                            className="px-3 py-2 bg-[#3E3E3E] h-[30px] w-[109px] border border-[#B3B3B3] text-white hover:bg-gray-900"
-                        >
-                            Save as Draft
-                        </Button>
-                        <Button className="px-3 py-2 bg-orange-500 h-[30px] text-white hover:bg-orange-600">
-                            Submit for Approval
-                        </Button>
+                        {!usesFormLayout && (
+                            <Button
+                                variant="secondary"
+                                className="px-3 py-2 bg-[#3E3E3E] h-[30px] w-[109px] border border-[#B3B3B3] text-white hover:bg-gray-900"
+                            >
+                                Save as Draft
+                            </Button>
+                        )}
+
+                        {usesFormLayout ? (
+                            // Form based tabs handle submission internally
+                            <></>
+                        ) : (
+                            <Button
+                                className="px-3 py-2 bg-orange-500 h-[30px] text-white hover:bg-orange-600"
+                                onClick={handleSubmitRequest}
+                                disabled={!selectedRequisitionType}
+                            >
+                                Submit for Approval
+                            </Button>
+                        )}
+
                     </div>
                 </div>
             </div>

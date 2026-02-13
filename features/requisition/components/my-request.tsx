@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useEffect, useState, useMemo } from "react";
 import {
     Bell,
     Download,
@@ -9,12 +9,30 @@ import {
     Search,
     SquarePen,
     Trash2,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useSetBreadcrumbs } from "@/lib/stores/breadcrumb-store";
+import {
+    format,
+    subDays,
+    isSameDay,
+    isSameWeek,
+    isSameMonth,
+    startOfDay,
+} from "date-fns";
+
 interface MyRequestProps {
     onRaiseRequisition: () => void;
 }
@@ -26,74 +44,17 @@ interface RequestItem {
     category: string;
     orderLevels: string;
     status: "Approved" | "Cancelled" | "Pending";
+    date: Date;
 }
 
-const mockData: RequestItem[] = [
-    {
-        id: "#1023",
-        department: "Kitchen",
-        items: "Fresh Vegetables +4",
-        category: "Inventory Items",
-        orderLevels: "25 kg",
-        status: "Approved",
-    },
-    {
-        id: "#1033",
-        department: "IT",
-        items: "Mouse",
-        category: "Non-Inventory Items",
-        orderLevels: "5 kg",
-        status: "Cancelled",
-    },
-    {
-        id: "#1023",
-        department: "Bar",
-        items: "Cocktail +20",
-        category: "Inventory Items",
-        orderLevels: "10 kg",
-        status: "Cancelled",
-    },
-    {
-        id: "#1023",
-        department: "Housekeeping",
-        items: "Tissue, Air Freshener +3",
-        category: "Inventory Items",
-        orderLevels: "50 kilo",
-        status: "Cancelled",
-    },
-    {
-        id: "#1023",
-        department: "Maintenance",
-        items: "Oil",
-        category: "20 Packs",
-        orderLevels: "20 packs",
-        status: "Cancelled",
-    },
-    {
-        id: "#1023",
-        department: "Logistics",
-        items: "Diesel",
-        category: "10 Packs",
-        orderLevels: "10 packs",
-        status: "Pending",
-    },
-    {
-        id: "#1023",
-        department: "Human Resource",
-        items: "Mouse Pad",
-        category: "30 kilo",
-        orderLevels: "30 kilo",
-        status: "Pending",
-    },
-    {
-        id: "#1023",
-        department: "Kitchen",
-        items: "Tomatoes, Oil +10",
-        category: "25 litres",
-        orderLevels: "25 litres",
-        status: "Pending",
-    },
-];
+// Generate dynamic dates relative to today for testing
+const today = startOfDay(new Date());
+const yesterday = subDays(today, 1);
+const lastWeek = subDays(today, 5);
+const lastMonth = subDays(today, 20);
+const twoMonthsAgo = subDays(today, 40);
+
+import { useRequisitionStore } from "@/lib/stores/requisition-store";
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -110,22 +71,120 @@ const getStatusColor = (status: string) => {
 
 export function MyRequest() {
     const [selectedTab, setSelectedTab] = useState("all");
-    const [dateRange, setDateRange] = useState("day");
+    const [dateRange, setDateRange] = useState("month"); // Default to month
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const itemsPerPage = 5;
+
+    const { requests } = useRequisitionStore();
+    const mockData = requests;
+
+    // Derived lists for filters
+    const uniqueDepartments = useMemo(() => Array.from(new Set(mockData.map(item => item.department))), [mockData]);
+    const uniqueCategories = useMemo(() => Array.from(new Set(mockData.map(item => item.category))), [mockData]);
+
+    // Filter Logic
+    const filteredData = useMemo(() => {
+        return mockData.filter((item) => {
+            // Status Filter
+            if (selectedTab !== "all" && item.status.toLowerCase() !== selectedTab.toLowerCase()) {
+                return false;
+            }
+
+            // Date Filter
+            const itemDate = item.date;
+            if (dateRange === "day") {
+                if (!isSameDay(itemDate, new Date())) return false;
+            } else if (dateRange === "week") {
+                if (!isSameWeek(itemDate, new Date())) return false;
+            } else if (dateRange === "month") {
+                if (!isSameMonth(itemDate, new Date())) return false;
+            }
+
+            // Department Filter
+            if (selectedDepartments.length > 0 && !selectedDepartments.includes(item.department)) {
+                return false;
+            }
+
+            // Category Filter
+            if (selectedCategories.length > 0 && !selectedCategories.includes(item.category)) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [selectedTab, dateRange, selectedDepartments, selectedCategories]);
+
+    // Pagination Logic
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const paginatedData = filteredData.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    // Reset page on filter change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedTab, dateRange, selectedDepartments, selectedCategories]);
+
+    // Handlers
+    const handleDepartmentToggle = (dept: string) => {
+        setSelectedDepartments(prev =>
+            prev.includes(dept) ? prev.filter(d => d !== dept) : [...prev, dept]
+        );
+    };
+
+    const handleCategoryToggle = (cat: string) => {
+        setSelectedCategories(prev =>
+            prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+        );
+    };
 
     const setBreadcrumbs = useSetBreadcrumbs();
 
     const tabs = [
-        { id: "all", label: "All", count: 2456 },
-        { id: "approved", label: "Approved", count: undefined },
-        { id: "pending", label: "Pending", count: undefined },
-        { id: "cancelled", label: "Cancelled", count: undefined },
+        { id: "all", label: "All", count: mockData.length },
+        { id: "approved", label: "Approved", count: mockData.filter(item => item.status === "Approved").length },
+        { id: "pending", label: "Pending", count: mockData.filter(item => item.status === "Pending").length },
+        { id: "cancelled", label: "Cancelled", count: mockData.filter(item => item.status === "Cancelled").length },
     ];
 
+    // Filter removal from implementation since we use useMemo above
+    /*
     const filteredData = mockData.filter((item) => {
         if (selectedTab === "all") return true;
         return item.status.toLowerCase() === selectedTab.toLowerCase();
     });
+    */
+
+    const handleExport = () => {
+        const headers = ["ID", "Date", "Department", "Items", "Category", "Order Levels", "Status"];
+        const csvContent = [
+            headers.join(","),
+            ...filteredData.map(item => [
+                item.id,
+                format(item.date, "yyyy-MM-dd"),
+                `"${item.department}"`,
+                `"${item.items}"`,
+                `"${item.category}"`,
+                `"${item.orderLevels}"`,
+                item.status
+            ].join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "my_requests.csv");
+            link.style.visibility = "hidden";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    };
 
     // Inject Breadcrumb - Update breadcrumbs when component mounts
     useEffect(() => {
@@ -149,11 +208,10 @@ export function MyRequest() {
                                 <button
                                     key={tab.id}
                                     onClick={() => setSelectedTab(tab.id)}
-                                    className={`pb-2 text-sm font-medium transition-colors relative ${
-                                        selectedTab === tab.id
-                                            ? "text-neutral-black"
-                                            : "text-[#919191]"
-                                    }`}
+                                    className={`pb-2 text-sm font-medium transition-colors relative ${selectedTab === tab.id
+                                        ? "text-neutral-black"
+                                        : "text-[#919191]"
+                                        }`}
                                 >
                                     {tab.label}
                                     {tab.count && (
@@ -169,16 +227,71 @@ export function MyRequest() {
                             ))}
                         </div>
                         <div className="flex items-center gap-3">
-                            <Button
-                                variant="ghost"
-                                className="text-orange-500 "
-                            >
-                                <ListFilter className="w-6 h-6" />
-                            </Button>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        className={`text-orange-500 hover:bg-orange-50 ${selectedDepartments.length > 0 || selectedCategories.length > 0 ? "bg-orange-50" : ""}`}
+                                    >
+                                        <ListFilter className="w-6 h-6" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-64 p-4" align="end">
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <h4 className="font-medium text-sm text-gray-900">Departments</h4>
+                                            <div className="grid gap-2 max-h-40 overflow-y-auto">
+                                                {uniqueDepartments.map(dept => (
+                                                    <div key={dept} className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id={`dept-${dept}`}
+                                                            checked={selectedDepartments.includes(dept)}
+                                                            onCheckedChange={() => handleDepartmentToggle(dept)}
+                                                        />
+                                                        <Label htmlFor={`dept-${dept}`} className="text-sm font-normal cursor-pointer">
+                                                            {dept}
+                                                        </Label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <h4 className="font-medium text-sm text-gray-900">Categories</h4>
+                                            <div className="grid gap-2 max-h-40 overflow-y-auto">
+                                                {uniqueCategories.map(cat => (
+                                                    <div key={cat} className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id={`cat-${cat}`}
+                                                            checked={selectedCategories.includes(cat)}
+                                                            onCheckedChange={() => handleCategoryToggle(cat)}
+                                                        />
+                                                        <Label htmlFor={`cat-${cat}`} className="text-sm font-normal cursor-pointer">
+                                                            {cat}
+                                                        </Label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {(selectedDepartments.length > 0 || selectedCategories.length > 0) && (
+                                            <Button
+                                                variant="ghost"
+                                                className="w-full text-xs text-red-500 hover:text-red-600 h-8"
+                                                onClick={() => {
+                                                    setSelectedDepartments([]);
+                                                    setSelectedCategories([]);
+                                                }}
+                                            >
+                                                Clear Filters
+                                            </Button>
+                                        )}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 className="w-[105px] h-[35px] text-[#3E3E3E] border border-[#CCCCCC] hover:text-gray-900"
+                                onClick={handleExport}
                             >
                                 <Download className="w-4 h-4 mr-1" />
                                 Export
@@ -266,6 +379,16 @@ export function MyRequest() {
                                     }}
                                     className="text-center py-4 px-4 text-[#262626]"
                                 >
+                                    Date
+                                </th>
+                                <th
+                                    style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        lineHeight: "100%",
+                                    }}
+                                    className="text-center py-4 px-4 text-[#262626]"
+                                >
                                     Department
                                 </th>
                                 <th
@@ -321,14 +444,13 @@ export function MyRequest() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredData.map((item, idx) => (
+                            {paginatedData.map((item, idx) => (
                                 <tr
                                     key={idx}
-                                    className={`hover:bg-gray-50 ${
-                                        idx % 2 === 0
-                                            ? "bg-white"
-                                            : "bg-[#F4F5F7]"
-                                    }`}
+                                    className={`hover:bg-gray-50 ${idx % 2 === 0
+                                        ? "bg-white"
+                                        : "bg-[#F4F5F7]"
+                                        }`}
                                 >
                                     <td
                                         style={{
@@ -338,6 +460,15 @@ export function MyRequest() {
                                         className="py-3 px-4 text-[#5B5B5B] text-center"
                                     >
                                         {item.id}
+                                    </td>
+                                    <td
+                                        style={{
+                                            fontSize: "12px",
+                                            fontWeight: "400",
+                                        }}
+                                        className="py-3 px-4 text-[#5B5B5B] text-center"
+                                    >
+                                        {format(item.date, "dd MMM yyyy")}
                                     </td>
                                     <td
                                         style={{
@@ -377,11 +508,10 @@ export function MyRequest() {
                                     </td>
                                     <td className="py-3 px-4 text-center">
                                         <span
-                                            className={`inline-block w-[94px] text-center px-3 py-2 text-xs ${
-                                                getStatusColor(
-                                                    item.status,
-                                                )
-                                            }`}
+                                            className={`inline-block w-[94px] text-center px-3 py-2 text-xs ${getStatusColor(
+                                                item.status,
+                                            )
+                                                }`}
                                         >
                                             {item.status}
                                         </span>
@@ -394,46 +524,68 @@ export function MyRequest() {
                                     </td>
                                 </tr>
                             ))}
+                            {paginatedData.length === 0 && (
+                                <tr>
+                                    <td colSpan={8} className="py-8 text-center text-gray-500 text-sm">
+                                        No requests found for the selected filters.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
 
                 {/* Pagination */}
-                <div className="px-6 py-4 flex  items-center justify-end gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-gray-600 bg-transparent"
-                    >
-                        {"< Previous"}
-                    </Button>
-                    <Button
-                        size="sm"
-                        className="bg-orange-500 text-white hover:bg-orange-600"
-                    >
-                        1
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-gray-600 bg-transparent"
-                    >
-                        2
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-gray-600 bg-transparent"
-                    >
-                        3
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-gray-600 bg-transparent"
-                    >
-                        {"Next >"}
-                    </Button>
+                <div className="px-6 py-4 flex items-center justify-between border-t border-gray-100">
+                    <span className="text-sm text-gray-500">
+                        Page {currentPage} of {Math.max(1, totalPages)}
+                    </span>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-gray-600 bg-transparent"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            <ChevronLeft className="w-4 h-4 mr-1" />
+                            Previous
+                        </Button>
+
+                        {/* Simple page numbers */}
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            // Logic to show a window of pages could go here, for now just show first 5 or logic around current
+                            // Simplified for demo:
+                            let p = i + 1;
+                            if (totalPages > 5 && currentPage > 3) {
+                                p = currentPage - 3 + i;
+                            }
+                            if (p > totalPages) return null;
+
+                            return (
+                                <Button
+                                    key={p}
+                                    size="sm"
+                                    variant={currentPage === p ? "default" : "outline"}
+                                    onClick={() => setCurrentPage(p)}
+                                    className={currentPage === p ? "bg-orange-500 text-white hover:bg-orange-600" : "text-gray-600 bg-transparent"}
+                                >
+                                    {p}
+                                </Button>
+                            );
+                        })}
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-gray-600 bg-transparent"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages || totalPages === 0}
+                        >
+                            Next
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
