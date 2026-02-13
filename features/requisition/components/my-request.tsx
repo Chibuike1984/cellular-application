@@ -132,7 +132,7 @@ export function MyRequest() {
         // Wrap in startTransition to keep the old UI responsive during the change
         startTransition(() => {
             setBreadcrumbs([
-                { href: "/dashboard", label: "Requisition" }, // ← use real href if possible
+                { href: "/dashboard", label: "Requisition" },
                 { href: "/requisition/my-requests", label: "My Requests" },
             ]);
         });
@@ -183,7 +183,7 @@ export function MyRequest() {
                                 <Download className="w-4 h-4 mr-1" />
                                 Export
                             </Button>
-                            <Link href="/dashboard/raise-requisition">
+                            <Link href="/dashboard/requisition/raise-requisition">
                                 <Button
                                     size="sm"
                                     className="bg-orange-500 text-white hover:bg-orange-600 gap-1"
