@@ -1,5 +1,5 @@
-import { shallow } from 'zustand/shallow';
-import { createWithEqualityFn } from 'zustand/traditional';
+import { shallow } from "zustand/shallow";
+import { createWithEqualityFn } from "zustand/traditional";
 
 export interface BreadcrumbItem {
   label: string;
@@ -44,7 +44,7 @@ export const useBreadcrumbActions = () =>
       resetBreadcrumbs: state.resetBreadcrumbs,
       replaceLastBreadcrumb: state.replaceLastBreadcrumb,
     }),
-    shallow
+    shallow,
   );
 
 // Individual action selectors
@@ -74,7 +74,7 @@ export const useBreadcrumbsInfo = () =>
       lastItem: state.breadcrumbs.at(-1),
       isEmpty: state.breadcrumbs.length === 0,
     }),
-    shallow
+    shallow,
   );
 
 export default useBreadcrumbStore;

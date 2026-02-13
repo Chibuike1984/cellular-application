@@ -336,7 +336,7 @@ export function RaiseRequisition() {
         <div>
             <div>
                 {/* Header */}
-                <Link href="/dashboard/my-request">
+                <Link href="/dashboard/requisition/my-request">
                     <Button
                         variant="ghost"
                         size="sm"
@@ -524,7 +524,7 @@ export function RaiseRequisition() {
 
                 {/* Footer Buttons */}
                 <div className="flex justify-between items-center bg-white border rounded-bl-md rounded-br-md border-[#E6E6E6] h-[70px] px-4">
-                    <Link href="/dashboard/my-request">
+                    <Link href="/dashboard/requisition/my-request">
                         <Button
                             variant="outline"
                             className="px-3 py-2 border-grey-300 bg-transparent h-[30px] w-[109px]"
