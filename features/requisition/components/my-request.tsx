@@ -1,5 +1,7 @@
 "use client";
 
+import { supabase } from "@/lib/lib/supabaseClient";
+
 import { startTransition, useEffect, useState, useMemo } from "react";
 import {
     Bell,
@@ -33,10 +35,6 @@ import {
     startOfDay,
 } from "date-fns";
 
-interface MyRequestProps {
-    onRaiseRequisition: () => void;
-}
-
 interface RequestItem {
     id: string;
     department: string;
@@ -46,15 +44,6 @@ interface RequestItem {
     status: "Approved" | "Cancelled" | "Pending";
     date: Date;
 }
-
-// Generate dynamic dates relative to today for testing
-const today = startOfDay(new Date());
-const yesterday = subDays(today, 1);
-const lastWeek = subDays(today, 5);
-const lastMonth = subDays(today, 20);
-const twoMonthsAgo = subDays(today, 40);
-
-import { useRequisitionStore } from "@/lib/stores/requisition-store";
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -71,22 +60,95 @@ const getStatusColor = (status: string) => {
 
 export function MyRequest() {
     const [selectedTab, setSelectedTab] = useState("all");
-    const [dateRange, setDateRange] = useState("month"); // Default to month
+    const [dateRange, setDateRange] = useState("month");
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [requests, setRequests] = useState<RequestItem[]>([]);
+    const [loading, setLoading] = useState(true);
+
     const itemsPerPage = 5;
 
-    const { requests } = useRequisitionStore();
-    const mockData = requests;
+    const setBreadcrumbs = useSetBreadcrumbs();
+
+    // Fetch data from Supabase
+    useEffect(() => {
+        const fetchRequests = async () => {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from("requisition_table")
+                .select(`
+                    id,
+                    items,
+                    order_level,
+                    status,
+                    created_at,
+                    department:department_id(name),
+                    category:category_id(name)
+                `)
+                .order("created_at", { ascending: false });
+
+            if (error) {
+                console.error("Error fetching requisitions:", error);
+                setRequests([]);
+            } else if (data) {
+                const formatted: RequestItem[] = data.map((d: any) => {
+               
+                    const rawStatus = (d.status ?? "").toString().trim().toLowerCase();
+                    let status: "Approved" | "Pending" | "Cancelled" = "Pending"; // default
+
+                    if (rawStatus === "approve") status = "Approved";   // map 'approve' → 'Approved'
+                    else if (rawStatus === "pending") status = "Pending";
+                    else if (rawStatus === "cancelled") status = "Cancelled";
+
+                    return {
+                        id: d.id,
+                        items: d.items,
+                        orderLevels: d.order_level,
+                        status,
+                        date: new Date(d.created_at),
+                        department: d.department?.name || "N/A",
+                        category: d.category?.name || "N/A",
+                    };
+                });
+                setRequests(formatted);
+            }
+            setLoading(false);
+        };
+
+        fetchRequests();
+    }, []);
+
+
+
+    const handleDelete = async (id: string) => {
+    // const confirmDelete = confirm("Are you sure you want to delete this request?");
+    // if (!confirmDelete) return;
+
+    const { error } = await supabase
+        .from("requisition_table")
+        .delete()
+        .eq("id", id);
+
+    if (error) {
+        // alert("Failed to delete: " + error.message);
+        console.error(error);
+    } else {
+
+        setRequests(prev => prev.filter(item => item.id !== id));
+        // alert("Request deleted successfully!");
+    }
+};
+
+
 
     // Derived lists for filters
-    const uniqueDepartments = useMemo(() => Array.from(new Set(mockData.map(item => item.department))), [mockData]);
-    const uniqueCategories = useMemo(() => Array.from(new Set(mockData.map(item => item.category))), [mockData]);
+    const uniqueDepartments = useMemo(() => Array.from(new Set(requests.map(item => item.department))), [requests]);
+    const uniqueCategories = useMemo(() => Array.from(new Set(requests.map(item => item.category))), [requests]);
 
     // Filter Logic
     const filteredData = useMemo(() => {
-        return mockData.filter((item) => {
+        return requests.filter((item) => {
             // Status Filter
             if (selectedTab !== "all" && item.status.toLowerCase() !== selectedTab.toLowerCase()) {
                 return false;
@@ -114,7 +176,7 @@ export function MyRequest() {
 
             return true;
         });
-    }, [selectedTab, dateRange, selectedDepartments, selectedCategories]);
+    }, [requests, selectedTab, dateRange, selectedDepartments, selectedCategories]);
 
     // Pagination Logic
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -123,12 +185,10 @@ export function MyRequest() {
         currentPage * itemsPerPage
     );
 
-    // Reset page on filter change
     useEffect(() => {
         setCurrentPage(1);
     }, [selectedTab, dateRange, selectedDepartments, selectedCategories]);
 
-    // Handlers
     const handleDepartmentToggle = (dept: string) => {
         setSelectedDepartments(prev =>
             prev.includes(dept) ? prev.filter(d => d !== dept) : [...prev, dept]
@@ -141,22 +201,12 @@ export function MyRequest() {
         );
     };
 
-    const setBreadcrumbs = useSetBreadcrumbs();
-
     const tabs = [
-        { id: "all", label: "All", count: mockData.length },
-        { id: "approved", label: "Approved", count: mockData.filter(item => item.status === "Approved").length },
-        { id: "pending", label: "Pending", count: mockData.filter(item => item.status === "Pending").length },
-        { id: "cancelled", label: "Cancelled", count: mockData.filter(item => item.status === "Cancelled").length },
+        { id: "all", label: "All", count: requests.length },
+        { id: "approved", label: "Approved", count: requests.filter(item => item.status === "Approved").length },
+        { id: "pending", label: "Pending", count: requests.filter(item => item.status === "Pending").length },
+        { id: "cancelled", label: "Cancelled", count: requests.filter(item => item.status === "Cancelled").length },
     ];
-
-    // Filter removal from implementation since we use useMemo above
-    /*
-    const filteredData = mockData.filter((item) => {
-        if (selectedTab === "all") return true;
-        return item.status.toLowerCase() === selectedTab.toLowerCase();
-    });
-    */
 
     const handleExport = () => {
         const headers = ["ID", "Date", "Department", "Items", "Category", "Order Levels", "Status"];
@@ -186,9 +236,8 @@ export function MyRequest() {
         }
     };
 
-    // Inject Breadcrumb - Update breadcrumbs when component mounts
+    // Set breadcrumbs
     useEffect(() => {
-        // Wrap in startTransition to keep the old UI responsive during the change
         startTransition(() => {
             setBreadcrumbs([
                 { href: "/dashboard", label: "Requisition" },
@@ -196,6 +245,10 @@ export function MyRequest() {
             ]);
         });
     }, [setBreadcrumbs]);
+
+    if (loading) {
+        return <div className="p-6 text-center text-gray-500">Loading requests...</div>;
+    }
 
     return (
         <div style={{ fontFamily: "Poppins" }}>
@@ -436,6 +489,7 @@ export function MyRequest() {
                                         fontSize: "12px",
                                         fontWeight: "600",
                                         lineHeight: "100%",
+                                        
                                     }}
                                     className="text-center py-4 px-4 text-[#262626] rounded-tr-lg"
                                 >
@@ -459,7 +513,7 @@ export function MyRequest() {
                                         }}
                                         className="py-3 px-4 text-[#5B5B5B] text-center"
                                     >
-                                        {item.id}
+                                        {"#" + item.id.slice(0, 8)}
                                     </td>
                                     <td
                                         style={{
@@ -519,7 +573,11 @@ export function MyRequest() {
                                     <td className="py-3 px-4 text-center">
                                         <div className="flex items-center gap-3">
                                             <SquarePen className="w-4 h-4" />
-                                            <Trash2 className="w-4 h-4" />
+                                            {/* <Trash2 className="w-4 h-4 cursor-pointer" /> */}
+                                             <Trash2
+                                                    className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-600"
+                                                    onClick={() => handleDelete(item.id)}
+                                                />
                                         </div>
                                     </td>
                                 </tr>

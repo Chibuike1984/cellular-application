@@ -1,0 +1,37 @@
+CREATE TABLE public.requisition_table (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    org_id uuid REFERENCES public.organizations(id),
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    items text NOT NULL,
+    order_level text NOT NULL,
+    status status_requisite NOT NULL DEFAULT 'pending',
+    department_id uuid NULL,
+    category_id uuid NULL,
+    CONSTRAINT requisition_table_pkey PRIMARY KEY (id),
+    CONSTRAINT requisition_table_category_id_fkey FOREIGN KEY (category_id) 
+        REFERENCES requisition_category (id) ON DELETE SET NULL,
+    CONSTRAINT requisition_table_department_id_fkey FOREIGN KEY (department_id) 
+        REFERENCES requisition_department (id) ON DELETE SET NULL
+)TABLESPACE pg_default;
+
+
+
+create table public.requisition_category (
+  id uuid not null default gen_random_uuid (),
+  name text not null,
+  created_at timestamp with time zone null default now(),
+  constraint requisition_category_pkey primary key (id),
+  constraint requisition_category_name_key unique (name)
+) TABLESPACE pg_default;
+
+
+
+create table public.requisition_department (
+  id uuid not null default gen_random_uuid (),
+  name text not null,
+  created_at timestamp with time zone null default now(),
+  constraint requisition_department_pkey primary key (id),
+  constraint requisition_department_name_key unique (name)
+) TABLESPACE pg_default;
+
+
