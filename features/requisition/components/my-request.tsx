@@ -14,6 +14,7 @@ import {
     ChevronLeft,
     ChevronRight,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -58,6 +59,57 @@ const getStatusColor = (status: string) => {
     }
 };
 
+function MyRequestSkeleton() {
+    return (
+        <div style={{ fontFamily: "Poppins" }}>
+            <div className="bg-white shadow-sm rounded-lg">
+                <div className="px-6 py-7">
+                    <div className="flex border-b border-gray-200 pb-3 items-center justify-between mb-4">
+                        <div className="flex items-center gap-8">
+                            {[1, 2, 3, 4].map((i) => (
+                                <Skeleton key={i} className="h-4 w-16" />
+                            ))}
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Skeleton className="h-9 w-9" />
+                            <Skeleton className="h-9 w-[105px]" />
+                            <Skeleton className="h-9 w-[120px]" />
+                        </div>
+                    </div>
+                    <div className="flex justify-between items-center gap-4">
+                        <div className="flex gap-2">
+                            {[1, 2, 3].map((i) => (
+                                <Skeleton key={i} className="h-[35px] w-[110px]" />
+                            ))}
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Skeleton className="h-9 w-9" />
+                            <Skeleton className="h-9 w-20" />
+                            <Skeleton className="h-9 w-9" />
+                        </div>
+                    </div>
+                </div>
+                <div className="px-6 py-4">
+                    <div className="w-full border rounded-lg overflow-hidden">
+                        <div className="bg-[#F2F2F2] h-12 flex items-center px-4 gap-4">
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                                <Skeleton key={i} className="h-4 flex-1" />
+                            ))}
+                        </div>
+                        {[1, 2, 3, 4, 5].map((row) => (
+                            <div key={row} className="h-12 flex items-center px-4 gap-4 border-t border-gray-100">
+                                {[1, 2, 3, 4, 5, 6, 7, 8].map((col) => (
+                                    <Skeleton key={col} className="h-3 flex-1" />
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export function MyRequest() {
     const [selectedTab, setSelectedTab] = useState("all");
     const [dateRange, setDateRange] = useState("month");
@@ -67,7 +119,7 @@ export function MyRequest() {
     const [requests, setRequests] = useState<RequestItem[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const itemsPerPage = 5;
+    const itemsPerPage = 10;
 
     const setBreadcrumbs = useSetBreadcrumbs();
 
@@ -93,7 +145,7 @@ export function MyRequest() {
                 setRequests([]);
             } else if (data) {
                 const formatted: RequestItem[] = data.map((d: any) => {
-               
+
                     const rawStatus = (d.status ?? "").toString().trim().toLowerCase();
                     let status: "Approved" | "Pending" | "Cancelled" = "Pending"; // default
 
@@ -122,23 +174,23 @@ export function MyRequest() {
 
 
     const handleDelete = async (id: string) => {
-    // const confirmDelete = confirm("Are you sure you want to delete this request?");
-    // if (!confirmDelete) return;
+        // const confirmDelete = confirm("Are you sure you want to delete this request?");
+        // if (!confirmDelete) return;
 
-    const { error } = await supabase
-        .from("requisition_table")
-        .delete()
-        .eq("id", id);
+        const { error } = await supabase
+            .from("requisition_table")
+            .delete()
+            .eq("id", id);
 
-    if (error) {
-        // alert("Failed to delete: " + error.message);
-        console.error(error);
-    } else {
+        if (error) {
+            // alert("Failed to delete: " + error.message);
+            console.error(error);
+        } else {
 
-        setRequests(prev => prev.filter(item => item.id !== id));
-        // alert("Request deleted successfully!");
-    }
-};
+            setRequests(prev => prev.filter(item => item.id !== id));
+            // alert("Request deleted successfully!");
+        }
+    };
 
 
 
@@ -247,7 +299,7 @@ export function MyRequest() {
     }, [setBreadcrumbs]);
 
     if (loading) {
-        return <div className="p-6 text-center text-gray-500">Loading requests...</div>;
+        return <MyRequestSkeleton />;
     }
 
     return (
@@ -489,7 +541,7 @@ export function MyRequest() {
                                         fontSize: "12px",
                                         fontWeight: "600",
                                         lineHeight: "100%",
-                                        
+
                                     }}
                                     className="text-center py-4 px-4 text-[#262626] rounded-tr-lg"
                                 >
@@ -574,10 +626,10 @@ export function MyRequest() {
                                         <div className="flex items-center gap-3">
                                             <SquarePen className="w-4 h-4" />
                                             {/* <Trash2 className="w-4 h-4 cursor-pointer" /> */}
-                                             <Trash2
-                                                    className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-600"
-                                                    onClick={() => handleDelete(item.id)}
-                                                />
+                                            <Trash2
+                                                className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-600"
+                                                onClick={() => handleDelete(item.id)}
+                                            />
                                         </div>
                                     </td>
                                 </tr>
