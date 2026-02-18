@@ -71,22 +71,31 @@ export function MyRequest() {
 
     const setBreadcrumbs = useSetBreadcrumbs();
 
-    // Fetch data from Supabase
+
+
+
+
+
+
+    //Fetch all from supabase requisition_table
     useEffect(() => {
         const fetchRequests = async () => {
             setLoading(true);
-            const { data, error } = await supabase
-                .from("requisition_table")
-                .select(`
-                    id,
-                    items,
-                    order_level,
-                    status,
-                    created_at,
-                    department:department_id(name),
-                    category:category_id(name)
-                `)
-                .order("created_at", { ascending: false });
+            
+                const { data, error } = await supabase
+                    .from("requisition_table")
+                    .select(`
+                        id,
+                        items,
+                        order_level,
+                        status,
+                        created_at,
+                        department:requisition_department(name),
+                        category:requisition_requisition_type(name)
+                    `)
+                    .order('created_at', { ascending: false });
+
+                
 
             if (error) {
                 console.error("Error fetching requisitions:", error);
@@ -95,9 +104,9 @@ export function MyRequest() {
                 const formatted: RequestItem[] = data.map((d: any) => {
                
                     const rawStatus = (d.status ?? "").toString().trim().toLowerCase();
-                    let status: "Approved" | "Pending" | "Cancelled" = "Pending"; // default
+                    let status: "Approved" | "Pending" | "Cancelled" = "Pending";
 
-                    if (rawStatus === "approve") status = "Approved";   // map 'approve' → 'Approved'
+                    if (rawStatus === "approve") status = "Approved";   
                     else if (rawStatus === "pending") status = "Pending";
                     else if (rawStatus === "cancelled") status = "Cancelled";
 
@@ -121,24 +130,26 @@ export function MyRequest() {
 
 
 
-    const handleDelete = async (id: string) => {
-    // const confirmDelete = confirm("Are you sure you want to delete this request?");
-    // if (!confirmDelete) return;
 
+
+
+    //Delete from supabase by row id
+    const handleDelete = async (id: string) => {
     const { error } = await supabase
         .from("requisition_table")
         .delete()
         .eq("id", id);
 
     if (error) {
-        // alert("Failed to delete: " + error.message);
         console.error(error);
     } else {
 
         setRequests(prev => prev.filter(item => item.id !== id));
-        // alert("Request deleted successfully!");
     }
-};
+    };
+
+
+
 
 
 
@@ -462,7 +473,7 @@ export function MyRequest() {
                                     }}
                                     className="text-center py-4 px-4 text-[#262626]"
                                 >
-                                    Category
+                                    Requisition Type 
                                 </th>
                                 <th
                                     style={{
