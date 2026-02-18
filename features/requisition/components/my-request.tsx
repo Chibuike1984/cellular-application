@@ -11,10 +11,11 @@ import {
     Search,
     SquarePen,
     Trash2,
-    ChevronLeft,
     ChevronRight,
+    ChevronLeft,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DeleteDialog } from "@/components/shared/delete-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -118,6 +119,8 @@ export function MyRequest() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [requests, setRequests] = useState<RequestItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
     const itemsPerPage = 10;
 
@@ -173,23 +176,26 @@ export function MyRequest() {
 
 
 
-    const handleDelete = async (id: string) => {
-        // const confirmDelete = confirm("Are you sure you want to delete this request?");
-        // if (!confirmDelete) return;
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
 
         const { error } = await supabase
             .from("requisition_table")
             .delete()
-            .eq("id", id);
+            .eq("id", itemToDelete);
 
         if (error) {
-            // alert("Failed to delete: " + error.message);
             console.error(error);
         } else {
-
-            setRequests(prev => prev.filter(item => item.id !== id));
-            // alert("Request deleted successfully!");
+            setRequests(prev => prev.filter(item => item.id !== itemToDelete));
         }
+        setDeleteDialogOpen(false);
+        setItemToDelete(null);
+    };
+
+    const handleDeleteClick = (id: string) => {
+        setItemToDelete(id);
+        setDeleteDialogOpen(true);
     };
 
 
@@ -628,7 +634,7 @@ export function MyRequest() {
                                             {/* <Trash2 className="w-4 h-4 cursor-pointer" /> */}
                                             <Trash2
                                                 className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-600"
-                                                onClick={() => handleDelete(item.id)}
+                                                onClick={() => handleDeleteClick(item.id)}
                                             />
                                         </div>
                                     </td>
@@ -697,6 +703,11 @@ export function MyRequest() {
                         </Button>
                     </div>
                 </div>
+                <DeleteDialog
+                    open={deleteDialogOpen}
+                    onOpenChange={setDeleteDialogOpen}
+                    onConfirm={confirmDelete}
+                />
             </div>
         </div>
     );
