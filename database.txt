@@ -105,6 +105,7 @@ CREATE TABLE public.requisition_table (
     reorder_level text,
     requested_qty integer NOT NULL,
     notes text,
+    content_note text,
     CONSTRAINT requisition_table_pkey PRIMARY KEY (id),
     CONSTRAINT requisition_table_requisition_type_id_fkey FOREIGN KEY (requisition_type_id) 
         REFERENCES requisition_requisition_type (id) ON DELETE SET NULL,
