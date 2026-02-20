@@ -1,5 +1,5 @@
-import { RaiseRequisition } from "@/features/requisition/components/raise-requisition";
+import { RaiseRequisition } from "@/features/requisition/components/my-request/raise-requisition";
 
-export default function RaiseRequisitionPage	() {
+export default function RaiseRequisitionPage() {
     return <RaiseRequisition />
 }

@@ -24,7 +24,7 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { useRequisitionStore } from '@/lib/stores/requisition-store';
-import { FinanceRequisitionSchema, FinanceRequisitionFormValues } from '../schemas';
+import { FinanceRequisitionSchema, FinanceRequisitionFormValues } from '../../schemas';
 
 interface FinanceRequestFormProps {
     requisitionType: string
