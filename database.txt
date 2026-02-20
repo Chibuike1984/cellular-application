@@ -1,37 +1,126 @@
+-- Department table
+CREATE TABLE public.requisition_department (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT requisition_department_pkey PRIMARY KEY (id),
+  CONSTRAINT requisition_department_name_key UNIQUE (name)
+) TABLESPACE pg_default;
+
+-- Requisition Type table (linked to department)
+CREATE TABLE public.requisition_requisition_type (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  department_id uuid NOT NULL REFERENCES public.requisition_department(id) ON DELETE CASCADE,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT requisition_type_pkey PRIMARY KEY (id),
+  CONSTRAINT requisition_type_name_key UNIQUE (name, department_id)
+) TABLESPACE pg_default;
+
+-- Insert Departments
+INSERT INTO public.requisition_department (name) VALUES
+('Inventory'),
+('Kitchen'),
+('Maintenance'),
+('Human Resource'),
+('Accounts / Finance'),
+('IT Department'),
+('Management / Admin');
+
+-- Insert Requisition Types
+-- Inventory department
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Inventory Requisition', id FROM public.requisition_department WHERE name='Inventory';
+
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Equipment Request', id FROM public.requisition_department WHERE name='Inventory';
+
+-- Kitchen department
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Inventory Requisition', id FROM public.requisition_department WHERE name='Kitchen';
+
+-- Maintenance department
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Office Supplies', id FROM public.requisition_department WHERE name='Maintenance';
+
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Equipment Request', id FROM public.requisition_department WHERE name='Maintenance';
+
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Repair Request', id FROM public.requisition_department WHERE name='Maintenance';
+
+-- Human Resource department
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Leave Request', id FROM public.requisition_department WHERE name='Human Resource';
+
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Permission Request', id FROM public.requisition_department WHERE name='Human Resource';
+
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Emergency Absent', id FROM public.requisition_department WHERE name='Human Resource';
+
+-- Accounts / Finance department
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Expense Reimbursement', id FROM public.requisition_department WHERE name='Accounts / Finance';
+
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Advance Payment', id FROM public.requisition_department WHERE name='Accounts / Finance';
+
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Petty Cash Request', id FROM public.requisition_department WHERE name='Accounts / Finance';
+
+-- IT Department
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Equipment Repairs', id FROM public.requisition_department WHERE name='IT Department';
+
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Software License', id FROM public.requisition_department WHERE name='IT Department';
+
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Maintenance/Repair', id FROM public.requisition_department WHERE name='IT Department';
+
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'System Access', id FROM public.requisition_department WHERE name='IT Department';
+
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Hardware Upgrade', id FROM public.requisition_department WHERE name='IT Department';
+
+-- Management / Admin
+INSERT INTO public.requisition_requisition_type (name, department_id)
+SELECT 'Inventory Requisition', id FROM public.requisition_department WHERE name='Management / Admin';
+
+
+
+-- Main Requisition Table
 CREATE TABLE public.requisition_table (
     id uuid NOT NULL DEFAULT gen_random_uuid(),
     org_id uuid REFERENCES public.organizations(id),
     created_at timestamp with time zone NOT NULL DEFAULT now(),
-    items text NOT NULL,
+    items text NOT NULL,  -- item names
     order_level text NOT NULL,
     status status_requisite NOT NULL DEFAULT 'pending',
     department_id uuid NULL,
-    category_id uuid NULL,
+    requisition_type_id uuid NULL,
+    current_stock text,
+    reorder_level text,
+    requested_qty integer NOT NULL,
+    notes text,
+    content_note text,
     CONSTRAINT requisition_table_pkey PRIMARY KEY (id),
-    CONSTRAINT requisition_table_category_id_fkey FOREIGN KEY (category_id) 
-        REFERENCES requisition_category (id) ON DELETE SET NULL,
+    CONSTRAINT requisition_table_requisition_type_id_fkey FOREIGN KEY (requisition_type_id) 
+        REFERENCES requisition_requisition_type (id) ON DELETE SET NULL,
     CONSTRAINT requisition_table_department_id_fkey FOREIGN KEY (department_id) 
         REFERENCES requisition_department (id) ON DELETE SET NULL
-)TABLESPACE pg_default;
-
-
-
-create table public.requisition_category (
-  id uuid not null default gen_random_uuid (),
-  name text not null,
-  created_at timestamp with time zone null default now(),
-  constraint requisition_category_pkey primary key (id),
-  constraint requisition_category_name_key unique (name)
 ) TABLESPACE pg_default;
 
 
 
-create table public.requisition_department (
-  id uuid not null default gen_random_uuid (),
-  name text not null,
-  created_at timestamp with time zone null default now(),
-  constraint requisition_department_pkey primary key (id),
-  constraint requisition_department_name_key unique (name)
-) TABLESPACE pg_default;
+Item Name =  items text NOT NULL,  -- item names
+Current Stock = current_stock text,
+Reorder Level = reorder_level text,
+Requested Qty* = requested_qty integer NOT NULL,
+Urgency	 = order_level text NOT NULL,
+Notes = notes text,
 
-
+Department = department_id
+requisition type = requisition_type_id

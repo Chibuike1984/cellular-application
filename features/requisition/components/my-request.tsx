@@ -14,6 +14,16 @@ import {
     ChevronRight,
     ChevronLeft,
 } from "lucide-react";
+import {
+    Dialog,
+    DialogTrigger,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+    DialogClose
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteDialog } from "@/components/shared/delete-dialog";
 import { Button } from "@/components/ui/button";
@@ -43,7 +53,7 @@ interface RequestItem {
     items: string;
     category: string;
     orderLevels: string;
-    status: "Approved" | "Cancelled" | "Pending";
+    status: "Approved" | "Cancelled" | "Pending" | "Draft" | "Partially Approved";
     date: Date;
 }
 
@@ -55,6 +65,10 @@ const getStatusColor = (status: string) => {
             return "bg-red-50 border-[#CCCCCC] text-red-800";
         case "Pending":
             return "bg-yellow-50 border-[#CCCCCC] text-yellow-800";
+        case "Draft":
+            return "bg-gray-100 border-[#CCCCCC] text-gray-700";
+        case "Partially Approved":
+            return "bg-blue-50 border-[#CCCCCC] text-blue-800";
         default:
             return "bg-gray-100 text-gray-700";
     }
@@ -119,6 +133,7 @@ export function MyRequest() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [requests, setRequests] = useState<RequestItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [openDialogId, setOpenDialogId] = useState<string | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
@@ -126,7 +141,6 @@ export function MyRequest() {
 
     const setBreadcrumbs = useSetBreadcrumbs();
 
-    // Fetch data from Supabase
     useEffect(() => {
         const fetchRequests = async () => {
             setLoading(true);
@@ -138,23 +152,24 @@ export function MyRequest() {
                     order_level,
                     status,
                     created_at,
-                    department:department_id(name),
-                    category:category_id(name)
+                    department:requisition_department(name),
+                    category:requisition_requisition_type(name)
                 `)
-                .order("created_at", { ascending: false });
+                .order('created_at', { ascending: false });
 
             if (error) {
                 console.error("Error fetching requisitions:", error);
                 setRequests([]);
             } else if (data) {
                 const formatted: RequestItem[] = data.map((d: any) => {
-
                     const rawStatus = (d.status ?? "").toString().trim().toLowerCase();
-                    let status: "Approved" | "Pending" | "Cancelled" = "Pending"; // default
+                    let status: "Approved" | "Pending" | "Cancelled" | "Draft" | "Partially Approved" = "Pending";
 
-                    if (rawStatus === "approve") status = "Approved";   // map 'approve' → 'Approved'
+                    if (rawStatus === "approved") status = "Approved";
                     else if (rawStatus === "pending") status = "Pending";
                     else if (rawStatus === "cancelled") status = "Cancelled";
+                    else if (rawStatus === "draft") status = "Draft";
+                    else if (rawStatus === "partially approved") status = "Partially Approved";
 
                     return {
                         id: d.id,
@@ -174,45 +189,33 @@ export function MyRequest() {
         fetchRequests();
     }, []);
 
-
-
-    const confirmDelete = async () => {
-        if (!itemToDelete) return;
+    const handleDelete = async (id: string) => {
+        // const confirmDelete = confirm("Are you sure you want to delete this request?");
+        // if (!confirmDelete) return;
 
         const { error } = await supabase
             .from("requisition_table")
             .delete()
-            .eq("id", itemToDelete);
+            .eq("id", id);
 
         if (error) {
+            // alert("Failed to delete: " + error.message);
             console.error(error);
         } else {
-            setRequests(prev => prev.filter(item => item.id !== itemToDelete));
+
+            setRequests(prev => prev.filter(item => item.id !== id));
+            // alert("Request deleted successfully!");
         }
-        setDeleteDialogOpen(false);
-        setItemToDelete(null);
     };
 
-    const handleDeleteClick = (id: string) => {
-        setItemToDelete(id);
-        setDeleteDialogOpen(true);
-    };
-
-
-
-    // Derived lists for filters
     const uniqueDepartments = useMemo(() => Array.from(new Set(requests.map(item => item.department))), [requests]);
     const uniqueCategories = useMemo(() => Array.from(new Set(requests.map(item => item.category))), [requests]);
 
-    // Filter Logic
     const filteredData = useMemo(() => {
         return requests.filter((item) => {
-            // Status Filter
             if (selectedTab !== "all" && item.status.toLowerCase() !== selectedTab.toLowerCase()) {
                 return false;
             }
-
-            // Date Filter
             const itemDate = item.date;
             if (dateRange === "day") {
                 if (!isSameDay(itemDate, new Date())) return false;
@@ -221,22 +224,16 @@ export function MyRequest() {
             } else if (dateRange === "month") {
                 if (!isSameMonth(itemDate, new Date())) return false;
             }
-
-            // Department Filter
             if (selectedDepartments.length > 0 && !selectedDepartments.includes(item.department)) {
                 return false;
             }
-
-            // Category Filter
             if (selectedCategories.length > 0 && !selectedCategories.includes(item.category)) {
                 return false;
             }
-
             return true;
         });
     }, [requests, selectedTab, dateRange, selectedDepartments, selectedCategories]);
 
-    // Pagination Logic
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
     const paginatedData = filteredData.slice(
         (currentPage - 1) * itemsPerPage,
@@ -263,6 +260,8 @@ export function MyRequest() {
         { id: "all", label: "All", count: requests.length },
         { id: "approved", label: "Approved", count: requests.filter(item => item.status === "Approved").length },
         { id: "pending", label: "Pending", count: requests.filter(item => item.status === "Pending").length },
+        { id: "draft", label: "Draft", count: requests.filter(item => item.status === "Draft").length },
+        { id: "partially approved", label: "Partially Approved", count: requests.filter(item => item.status === "Partially Approved").length },
         { id: "cancelled", label: "Cancelled", count: requests.filter(item => item.status === "Cancelled").length },
     ];
 
@@ -294,7 +293,6 @@ export function MyRequest() {
         }
     };
 
-    // Set breadcrumbs
     useEffect(() => {
         startTransition(() => {
             setBreadcrumbs([
@@ -520,7 +518,7 @@ export function MyRequest() {
                                     }}
                                     className="text-center py-4 px-4 text-[#262626]"
                                 >
-                                    Category
+                                    Requisition Type
                                 </th>
                                 <th
                                     style={{
@@ -634,7 +632,7 @@ export function MyRequest() {
                                             {/* <Trash2 className="w-4 h-4 cursor-pointer" /> */}
                                             <Trash2
                                                 className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-600"
-                                                onClick={() => handleDeleteClick(item.id)}
+                                                onClick={() => handleDelete(item.id)}
                                             />
                                         </div>
                                     </td>
@@ -668,10 +666,7 @@ export function MyRequest() {
                             Previous
                         </Button>
 
-                        {/* Simple page numbers */}
                         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                            // Logic to show a window of pages could go here, for now just show first 5 or logic around current
-                            // Simplified for demo:
                             let p = i + 1;
                             if (totalPages > 5 && currentPage > 3) {
                                 p = currentPage - 3 + i;
