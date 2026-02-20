@@ -12,16 +12,17 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose
+    Dialog,
+    DialogTrigger,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+    DialogClose
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { DeleteDialog } from "@/components/shared/delete-dialog";
 
 interface RequisitionItem {
     id: string
@@ -64,6 +65,8 @@ export function PurchaseRequestTable({
     contentNote,
     setContentNote
 }: PurchaseRequestTableProps) {
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
     const isInventoryRequisition = requisitionType === 'inventory-req'
     const isRepairRequest = requisitionType === 'repair-req'
@@ -205,47 +208,17 @@ export function PurchaseRequestTable({
                                 </td>
 
                                 <td className='py-4 px-4 text-center'>
-                                    {/* <Button
+                                    <Button
                                         variant='ghost'
                                         size='sm'
-                                        onClick={() => onRemoveItem(item.id)}
                                         className='text-gray-400 hover:text-red-600 hover:bg-red-50'
+                                        onClick={() => {
+                                            setItemToDelete(item.id);
+                                            setDeleteDialogOpen(true);
+                                        }}
                                     >
                                         <Trash2 className='w-4 h-4' />
-                                    </Button> */}
-
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button
-                                            variant='ghost'
-                                            size='sm'
-                                            className='text-gray-400 hover:text-red-600 hover:bg-red-50'
-                                            >
-                                            <Trash2 className='w-4 h-4' />
-                                            </Button>
-                                        </DialogTrigger>
-
-                                        <DialogContent>
-                                            <DialogHeader>
-                                            <DialogTitle>Confirm Delete</DialogTitle>
-                                            <DialogDescription>
-                                                Are you sure you want to remove this item from the requisition item? This action cannot be undone.
-                                            </DialogDescription>
-                                            </DialogHeader>
-
-                                            <DialogFooter>
-                                            <DialogClose asChild>
-                                                <Button className='bg-gray-200 px-4 py-2 rounded'>Cancel</Button>
-                                            </DialogClose>
-                                            <Button
-                                                className='bg-red-500 text-white px-4 py-2 rounded'
-                                                onClick={() => onRemoveItem(item.id)}
-                                            >
-                                                Delete
-                                            </Button>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                        </Dialog>
+                                    </Button>
                                 </td>
                             </tr>
                         ))}
@@ -266,6 +239,18 @@ export function PurchaseRequestTable({
                     />
                 </div>
             </div>
+            <DeleteDialog
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                onConfirm={() => {
+                    if (itemToDelete) {
+                        onRemoveItem(itemToDelete);
+                        setItemToDelete(null);
+                    }
+                }}
+                title="Confirm Delete"
+                description="Are you sure you want to remove this item from the requisition?"
+            />
         </div>
     )
 }
