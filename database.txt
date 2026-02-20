@@ -114,6 +114,25 @@ CREATE TABLE public.requisition_table (
 ) TABLESPACE pg_default;
 
 
+CREATE TABLE requests (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    org_id uuid REFERENCES public.organizations(id),
+    user_id UUID NOT NULL,                     -- User submitting the request
+    request_type VARCHAR(50) NOT NULL,        -- e.g., leave, emergency, finance, IT
+    category VARCHAR(100),                     -- e.g., leave type, emergency type
+    start_date DATE,                           -- Start date if applicable
+    end_date DATE,                             -- End date if applicable
+    start_time TIME,                           -- Start time if applicable
+    end_time TIME,                             -- End time if applicable
+    description TEXT,                          -- Reason / details
+    quantity INT,                              -- Number of items for equipment requests
+    urgency VARCHAR(10) DEFAULT 'Medium',      -- High / Medium / Low
+    supporting_document_url VARCHAR(255),      -- Path to uploaded file in storage
+    status status_requisite NOT NULL DEFAULT 'pending',        -- draft / pending / approved / rejected
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
 
 Item Name =  items text NOT NULL,  -- item names
 Current Stock = current_stock text,
