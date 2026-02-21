@@ -22,7 +22,7 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form"
-import { HRRequisitionSchema, HRRequisitionFormValues } from "../schemas"
+import { HRRequisitionSchema, HRRequisitionFormValues } from "../../schemas"
 import { useEffect } from 'react'
 
 interface HRRequestFormProps {

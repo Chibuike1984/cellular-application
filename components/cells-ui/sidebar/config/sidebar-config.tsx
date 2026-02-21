@@ -1,6 +1,9 @@
 import { AnalysisIcon } from "@/features/assets/react-icon/analysis-icon";
 import { CalendarIcon } from "@/features/assets/react-icon/calender-icon";
 import { CategoryIcon } from "@/features/assets/react-icon/category-icon";
+import { ApprovalIcon } from "@/features/assets/react-icon/approval-icon";
+import { DepartmentalIcon } from "@/features/assets/react-icon/departmental-request-icon";
+import { ReturnsIcon } from "@/features/assets/react-icon/return-icon";
 import { DashboardIcon } from "@/features/assets/react-icon/dashboard-icon";
 import { DeliveryIcon } from "@/features/assets/react-icon/delivery-icon";
 import { EmployeeDirectoryIcon } from "@/features/assets/react-icon/employee-directory-icon";
@@ -154,17 +157,17 @@ const SIDEBAR_CONFIG = [
         slug: "/dashboard/requisition/my-request",
       },
       {
-        icon: BsBarChart,
+        icon: DepartmentalIcon,
         name: "Departmental Requests",
         slug: "/dashboard/requisition/departmental-requests",
       },
       {
-        icon: BsBarChart,
+        icon: ReturnsIcon,
         name: "Returns",
         slug: "/dashboard/requisition/returns",
       },
       {
-        icon: BsBarChart,
+        icon: ApprovalIcon,
         name: "Approvals",
         slug: "/dashboard/requisition/approvals",
       },

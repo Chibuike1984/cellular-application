@@ -1,7 +1,5 @@
 "use client";
 
-import { supabase } from "@/lib/lib/supabaseClient";
-
 import { startTransition, useEffect, useState, useMemo } from "react";
 import {
     Bell,
@@ -11,19 +9,21 @@ import {
     Search,
     SquarePen,
     Trash2,
-    ChevronLeft,
     ChevronRight,
+    ChevronLeft,
 } from "lucide-react";
 import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose
+    Dialog,
+    DialogTrigger,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+    DialogClose
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DeleteDialog } from "@/components/shared/delete-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -55,6 +55,117 @@ interface RequestItem {
     date: Date;
 }
 
+const STATIC_REQUESTS: RequestItem[] = [
+    {
+        id: "a1b2c3d4-0001-0001-0001-000000000001",
+        department: "Engineering",
+        items: "Laptop, Monitor",
+        category: "IT Equipment",
+        orderLevels: "Level 1",
+        status: "Approved",
+        date: new Date(),
+    },
+    {
+        id: "a1b2c3d4-0002-0002-0002-000000000002",
+        department: "HR",
+        items: "Office Chairs",
+        category: "Furniture",
+        orderLevels: "Level 2",
+        status: "Pending",
+        date: new Date(),
+    },
+    {
+        id: "a1b2c3d4-0003-0003-0003-000000000003",
+        department: "Finance",
+        items: "Printer Cartridges",
+        category: "Stationery",
+        orderLevels: "Level 1",
+        status: "Draft",
+        date: subDays(new Date(), 2),
+    },
+    {
+        id: "a1b2c3d4-0004-0004-0004-000000000004",
+        department: "Operations",
+        items: "Safety Gloves, Helmets",
+        category: "Safety Equipment",
+        orderLevels: "Level 3",
+        status: "Partially Approved",
+        date: subDays(new Date(), 5),
+    },
+    {
+        id: "a1b2c3d4-0005-0005-0005-000000000005",
+        department: "Marketing",
+        items: "Brochures, Banners",
+        category: "Marketing Materials",
+        orderLevels: "Level 2",
+        status: "Cancelled",
+        date: subDays(new Date(), 10),
+    },
+    {
+        id: "a1b2c3d4-0006-0006-0006-000000000006",
+        department: "Engineering",
+        items: "Server Rack",
+        category: "IT Equipment",
+        orderLevels: "Level 3",
+        status: "Pending",
+        date: subDays(new Date(), 1),
+    },
+    {
+        id: "a1b2c3d4-0007-0007-0007-000000000007",
+        department: "HR",
+        items: "Training Manuals",
+        category: "Stationery",
+        orderLevels: "Level 1",
+        status: "Approved",
+        date: subDays(new Date(), 3),
+    },
+    {
+        id: "a1b2c3d4-0008-0008-0008-000000000008",
+        department: "Finance",
+        items: "Calculator, Stapler",
+        category: "Stationery",
+        orderLevels: "Level 1",
+        status: "Draft",
+        date: subDays(new Date(), 7),
+    },
+    {
+        id: "a1b2c3d4-0009-0009-0009-000000000009",
+        department: "Operations",
+        items: "Forklift Parts",
+        category: "Machinery",
+        orderLevels: "Level 4",
+        status: "Approved",
+        date: subDays(new Date(), 4),
+    },
+    {
+        id: "a1b2c3d4-0010-0010-0010-000000000010",
+        department: "Marketing",
+        items: "Camera, Tripod",
+        category: "IT Equipment",
+        orderLevels: "Level 2",
+        status: "Partially Approved",
+        date: subDays(new Date(), 6),
+    },
+    {
+        id: "a1b2c3d4-0011-0011-0011-000000000011",
+        department: "Engineering",
+        items: "Soldering Kit",
+        category: "Tools",
+        orderLevels: "Level 2",
+        status: "Cancelled",
+        date: subDays(new Date(), 12),
+    },
+    {
+        id: "a1b2c3d4-0012-0012-0012-000000000012",
+        department: "HR",
+        items: "Desk Lamp",
+        category: "Furniture",
+        orderLevels: "Level 1",
+        status: "Pending",
+        date: subDays(new Date(), 8),
+    },
+];
+
 const getStatusColor = (status: string) => {
     switch (status) {
         case "Approved":
@@ -72,7 +183,58 @@ const getStatusColor = (status: string) => {
     }
 };
 
-export function MyRequest() {
+function MyRequestSkeleton() {
+    return (
+        <div style={{ fontFamily: "Poppins" }}>
+            <div className="bg-white shadow-sm rounded-lg">
+                <div className="px-6 py-7">
+                    <div className="flex border-b border-gray-200 pb-3 items-center justify-between mb-4">
+                        <div className="flex items-center gap-8">
+                            {[1, 2, 3, 4].map((i) => (
+                                <Skeleton key={i} className="h-4 w-16" />
+                            ))}
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Skeleton className="h-9 w-9" />
+                            <Skeleton className="h-9 w-[105px]" />
+                            <Skeleton className="h-9 w-[120px]" />
+                        </div>
+                    </div>
+                    <div className="flex justify-between items-center gap-4">
+                        <div className="flex gap-2">
+                            {[1, 2, 3].map((i) => (
+                                <Skeleton key={i} className="h-[35px] w-[110px]" />
+                            ))}
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Skeleton className="h-9 w-9" />
+                            <Skeleton className="h-9 w-20" />
+                            <Skeleton className="h-9 w-9" />
+                        </div>
+                    </div>
+                </div>
+                <div className="px-6 py-4">
+                    <div className="w-full border rounded-lg overflow-hidden">
+                        <div className="bg-[#F2F2F2] h-12 flex items-center px-4 gap-4">
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                                <Skeleton key={i} className="h-4 flex-1" />
+                            ))}
+                        </div>
+                        {[1, 2, 3, 4, 5].map((row) => (
+                            <div key={row} className="h-12 flex items-center px-4 gap-4 border-t border-gray-100">
+                                {[1, 2, 3, 4, 5, 6, 7, 8].map((col) => (
+                                    <Skeleton key={col} className="h-3 flex-1" />
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export function DepartmentalRequest() {
     const [selectedTab, setSelectedTab] = useState("all");
     const [dateRange, setDateRange] = useState("month");
     const [currentPage, setCurrentPage] = useState(1);
@@ -80,71 +242,32 @@ export function MyRequest() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [requests, setRequests] = useState<RequestItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [openDialogId, setOpenDialogId] = useState<string | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
-    const itemsPerPage = 5;
+    const itemsPerPage = 10;
 
     const setBreadcrumbs = useSetBreadcrumbs();
 
     useEffect(() => {
-        const fetchRequests = async () => {
-            setLoading(true);
-            const { data, error } = await supabase
-                .from("requisition_table")
-                .select(`
-                    id,
-                    items,
-                    order_level,
-                    status,
-                    created_at,
-                    department:requisition_department(name),
-                    category:requisition_requisition_type(name)
-                `)
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error("Error fetching requisitions:", error);
-                setRequests([]);
-            } else if (data) {
-                const formatted: RequestItem[] = data.map((d: any) => {
-                    const rawStatus = (d.status ?? "").toString().trim().toLowerCase();
-                    let status: "Approved" | "Pending" | "Cancelled" | "Draft" | "Partially Approved" = "Pending";
-
-                    if (rawStatus === "approved") status = "Approved";
-                    else if (rawStatus === "pending") status = "Pending";
-                    else if (rawStatus === "cancelled") status = "Cancelled";
-                    else if (rawStatus === "draft") status = "Draft";
-                    else if (rawStatus === "partially approved") status = "Partially Approved";
-
-                    return {
-                        id: d.id,
-                        items: d.items,
-                        orderLevels: d.order_level,
-                        status,
-                        date: new Date(d.created_at),
-                        department: d.department?.name || "N/A",
-                        category: d.category?.name || "N/A",
-                    };
-                });
-                setRequests(formatted);
-            }
+        // Simulate a brief loading state then load static data
+        const timer = setTimeout(() => {
+            setRequests(STATIC_REQUESTS);
             setLoading(false);
-        };
-
-        fetchRequests();
+        }, 500);
+        return () => clearTimeout(timer);
     }, []);
 
-    const handleDelete = async (id: string) => {
-        const { error } = await supabase
-            .from("requisition_table")
-            .delete()
-            .eq("id", id);
+    const confirmDelete = () => {
+        if (!itemToDelete) return;
+        setRequests(prev => prev.filter(item => item.id !== itemToDelete));
+        setDeleteDialogOpen(false);
+        setItemToDelete(null);
+    };
 
-        if (error) {
-            console.error(error);
-        } else {
-            setRequests(prev => prev.filter(item => item.id !== id));
-        }
+    const handleDeleteClick = (id: string) => {
+        setItemToDelete(id);
+        setDeleteDialogOpen(true);
     };
 
     const uniqueDepartments = useMemo(() => Array.from(new Set(requests.map(item => item.department))), [requests]);
@@ -236,13 +359,13 @@ export function MyRequest() {
         startTransition(() => {
             setBreadcrumbs([
                 { href: "/dashboard", label: "Requisition" },
-                { href: "/requisition/my-requests", label: "My Requests" },
+                { href: "/requisition/departmental-requests", label: "Departmental Requests" },
             ]);
         });
     }, [setBreadcrumbs]);
 
     if (loading) {
-        return <div className="p-6 text-center text-gray-500">Loading requests...</div>;
+        return <MyRequestSkeleton />;
     }
 
     return (
@@ -409,208 +532,52 @@ export function MyRequest() {
                     <table className="w-full">
                         <thead className="bg-[#F2F2F2]">
                             <tr>
-                                <th
-                                    style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        lineHeight: "100%",
-                                    }}
-                                    className="text-center py-4 px-4 text-[#262626] rounded-tl-lg"
-                                >
-                                    ID
-                                </th>
-                                <th
-                                    style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        lineHeight: "100%",
-                                    }}
-                                    className="text-center py-4 px-4 text-[#262626]"
-                                >
-                                    Date
-                                </th>
-                                <th
-                                    style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        lineHeight: "100%",
-                                    }}
-                                    className="text-center py-4 px-4 text-[#262626]"
-                                >
-                                    Department
-                                </th>
-                                <th
-                                    style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        lineHeight: "100%",
-                                    }}
-                                    className="text-center py-4 px-4 text-[#262626]"
-                                >
-                                    Items
-                                </th>
-                                <th
-                                    style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        lineHeight: "100%",
-                                    }}
-                                    className="text-center py-4 px-4 text-[#262626]"
-                                >
-                                    Requisition Type 
-                                </th>
-                                <th
-                                    style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        lineHeight: "100%",
-                                    }}
-                                    className="text-center py-4 px-4 text-[#262626]"
-                                >
-                                    Order Levels
-                                </th>
-                                <th
-                                    style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        lineHeight: "100%",
-                                    }}
-                                    className="text-center py-4 px-4 text-[#262626]"
-                                >
-                                    Status
-                                </th>
-                                <th
-                                    style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        lineHeight: "100%",
-                                        
-                                    }}
-                                    className="text-center py-4 px-4 text-[#262626] rounded-tr-lg"
-                                >
-                                    Actions
-                                </th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626] rounded-tl-lg">ID</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Date</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Department</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Items</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Requisition Type</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Order Levels</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Status</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626] rounded-tr-lg">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {paginatedData.map((item, idx) => (
                                 <tr
                                     key={idx}
-                                    className={`hover:bg-gray-50 ${idx % 2 === 0
-                                        ? "bg-white"
-                                        : "bg-[#F4F5F7]"
-                                        }`}
+                                    className={`hover:bg-gray-50 ${idx % 2 === 0 ? "bg-white" : "bg-[#F4F5F7]"}`}
                                 >
-                                    <td
-                                        style={{
-                                            fontSize: "12px",
-                                            fontWeight: "400",
-                                        }}
-                                        className="py-3 px-4 text-[#5B5B5B] text-center"
-                                    >
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-[#5B5B5B] text-center">
                                         {"#" + item.id.slice(0, 8)}
                                     </td>
-                                    <td
-                                        style={{
-                                            fontSize: "12px",
-                                            fontWeight: "400",
-                                        }}
-                                        className="py-3 px-4 text-[#5B5B5B] text-center"
-                                    >
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-[#5B5B5B] text-center">
                                         {format(item.date, "dd MMM yyyy")}
                                     </td>
-                                    <td
-                                        style={{
-                                            fontSize: "12px",
-                                            fontWeight: "400",
-                                        }}
-                                        className="py-3 px-4 text-[#5B5B5B] text-center"
-                                    >
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-[#5B5B5B] text-center">
                                         {item.department}
                                     </td>
-                                    <td
-                                        style={{
-                                            fontSize: "12px",
-                                            fontWeight: "400",
-                                        }}
-                                        className="py-3 px-4 text-neutral-black text-center"
-                                    >
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
                                         {item.items}
                                     </td>
-                                    <td
-                                        style={{
-                                            fontSize: "12px",
-                                            fontWeight: "400",
-                                        }}
-                                        className="py-3 px-4 text-neutral-black text-center"
-                                    >
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
                                         {item.category}
                                     </td>
-                                    <td
-                                        style={{
-                                            fontSize: "12px",
-                                            fontWeight: "400",
-                                        }}
-                                        className="py-3 px-4 text-neutral-black text-center"
-                                    >
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
                                         {item.orderLevels}
                                     </td>
                                     <td className="py-3 px-4 text-center">
-                                        <span
-                                            className={`inline-block w-[94px] text-center px-3 py-2 text-xs ${getStatusColor(
-                                                item.status,
-                                            )
-                                                }`}
-                                        >
+                                        <span className={`inline-block w-[94px] text-center px-3 py-2 text-xs ${getStatusColor(item.status)}`}>
                                             {item.status}
                                         </span>
                                     </td>
                                     <td className="py-3 px-4 text-center">
                                         <div className="flex items-center gap-3">
                                             <SquarePen className="w-4 h-4" />
-                                             {/* <Trash2
-                                                    className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-600"
-                                                    onClick={() => handleDelete(item.id)}
-                                                /> */}
-                                            <Dialog open={openDialogId === item.id} onOpenChange={(isOpen) => setOpenDialogId(isOpen ? item.id : null)}>
-                                                {["Pending", "Draft"].includes(item.status) ? (
-                                                    <DialogTrigger asChild>
-                                                    <Trash2 className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-600" />
-                                                    </DialogTrigger>
-                                                ) : (
-                                                    <Trash2 className="w-4 h-4 text-gray-300 cursor-not-allowed" />
-                                                )}
-
-                                                <DialogContent>
-                                                    <DialogHeader>
-                                                    <DialogTitle>Confirm Delete</DialogTitle>
-                                                    <DialogDescription>
-                                                        Are you sure you want to delete this requisition? This action cannot be undone.
-                                                    </DialogDescription>
-                                                    </DialogHeader>
-
-                                                    <DialogFooter>
-                                                    <DialogClose asChild>
-                                                        <button className="bg-gray-200 px-4 py-2 rounded">Cancel</button>
-                                                    </DialogClose>
-
-                                                    <button
-                                                        onClick={async () => {
-                                                        await handleDelete(item.id);
-                                                        setOpenDialogId(null); 
-                                                        }}
-                                                        className={`px-4 py-2 rounded text-white ${
-                                                        ["Pending", "Draft"].includes(item.status)
-                                                            ? "bg-red-500 hover:bg-red-600"
-                                                            : "bg-gray-300 cursor-not-allowed"
-                                                        }`}
-                                                        disabled={!["Pending", "Draft"].includes(item.status)}
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                    </DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
+                                            <Trash2
+                                                className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-600"
+                                                onClick={() => handleDeleteClick(item.id)}
+                                            />
                                         </div>
                                     </td>
                                 </tr>
@@ -675,6 +642,11 @@ export function MyRequest() {
                         </Button>
                     </div>
                 </div>
+                <DeleteDialog
+                    open={deleteDialogOpen}
+                    onOpenChange={setDeleteDialogOpen}
+                    onConfirm={confirmDelete}
+                />
             </div>
         </div>
     );

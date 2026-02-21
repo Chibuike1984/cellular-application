@@ -24,7 +24,7 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { useRequisitionStore } from '@/lib/stores/requisition-store';
-import { ITRequisitionSchema, ITRequisitionFormValues } from '../schemas';
+import { ITRequisitionSchema, ITRequisitionFormValues } from '../../schemas';
 
 interface ITRequestFormProps {
     requisitionType: string
