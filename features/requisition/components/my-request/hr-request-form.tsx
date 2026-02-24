@@ -1,7 +1,8 @@
 'use client'
+
+import { supabase } from "@/lib/lib/supabaseClient";
 import { Upload, AlertCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useRequisitionStore } from '@/lib/stores/requisition-store'
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
@@ -22,38 +23,45 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog"
 import { HRRequisitionSchema, HRRequisitionFormValues } from "../../schemas"
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 interface HRRequestFormProps {
     requisitionType: string
 }
 
 export function HRRequestForm({ requisitionType }: HRRequestFormProps) {
+
+    const router = useRouter()
+
+    const [showDialog, setShowDialog] = useState(false)
+    const [dialogTitle, setDialogTitle] = useState("")
+    const [dialogMessage, setDialogMessage] = useState("")
+    const [file, setFile] = useState<File | null>(null)
+
     const isLeaveRequest = requisitionType === 'leave-req'
     const isPermissionRequest = requisitionType === 'permission-req'
     const isEmergencyAbsent = requisitionType === 'emergency-absent'
 
     const form = useForm<HRRequisitionFormValues>({
         resolver: zodResolver(HRRequisitionSchema),
+        mode: "onChange",
         defaultValues: {
             department: "hr",
             requisitionType: requisitionType as any,
             reason: "",
             notes: "",
-            // specific fields will be undefined initially or set here
-            // leaveType: "",
-            // startDate: "",
-            // endDate: "",
-            // permissionType: "",
-            // date: "",
-            // fromTime: "",
-            // toTime: "",
-            // emergencyType: "",
         },
     })
 
-    // Reset form when requisitionType changes to ensure validation schema aligns
     useEffect(() => {
         form.reset({
             department: "hr",
@@ -63,42 +71,112 @@ export function HRRequestForm({ requisitionType }: HRRequestFormProps) {
         })
     }, [requisitionType, form])
 
-    const router = useRouter()
-    const { addRequest } = useRequisitionStore()
 
-    function onSubmit(data: HRRequisitionFormValues) {
-        // Map form data to RequestItem
-        let items = "";
-        let date = new Date();
-        let category = "";
+    async function onSubmit(data: HRRequisitionFormValues) {
+    try {
+        let category: string | null = null
+        let startDate: string | null = null
+        let endDate: string | null = null
+        let startTime: string | null = null
+        let endTime: string | null = null
 
-        if (data.requisitionType === 'leave-req') {
-            items = `${data.leaveType} Leave`;
-            category = "Leave Request";
-            if (data.startDate) date = new Date(data.startDate);
-        } else if (data.requisitionType === 'permission-req') {
-            items = `${data.permissionType} Permission`;
-            category = "Permission Request";
-            if (data.date) date = new Date(data.date);
-        } else if (data.requisitionType === 'emergency-absent') {
-            items = `${data.emergencyType} Emergency`;
-            category = "Emergency Absent";
-            if (data.date) date = new Date(data.date);
+        if (isLeaveRequest) {
+            category = data.leaveType ?? null
+            startDate = data.startDate ?? null
+            endDate = data.endDate ?? null
         }
 
-        const newRequest = {
-            id: `#${Math.floor(Math.random() * 10000)}`, // Simple ID generation
-            department: "Human Resource", // formatted name
-            items: items,
-            category: category,
-            orderLevels: "-",
-            status: "Pending" as const,
-            date: date,
-        };
+        if (isPermissionRequest) {
+            category = data.permissionType ?? null
+            startDate = data.date ?? null
+            startTime = data.fromTime ?? null
+            endTime = data.toTime ?? null
+        }
 
-        addRequest(newRequest);
-        router.push("/dashboard/my-request");
+        if (isEmergencyAbsent) {
+            category = data.emergencyType ?? null
+            startDate = data.date ?? null
+            startTime = data.fromTime ?? null
+            endTime = data.toTime ?? null
+        }
+
+        if (isEmergencyAbsent && !file) {
+            throw new Error("Supporting document is required for emergency absence.")
+        }
+
+        let fileUrl: string | null = null
+
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                throw new Error("File size must be less than 5MB.")
+            }
+
+            const fileExt = file.name.split(".").pop()
+            const fileName = `${Date.now()}.${fileExt}`
+            const filePath = `supporting-documents/${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+                .from("request-documents")
+                .upload(filePath, file)
+
+            if (uploadError) throw uploadError
+
+            const { data: publicUrlData } = supabase.storage
+                .from("request-documents")
+                .getPublicUrl(filePath)
+
+            fileUrl = publicUrlData.publicUrl
+        }
+
+        const { data: deptData, error: deptError } = await supabase
+            .from("requisition_department")
+            .select("id")
+            .eq("slug", "hr")
+            .single()
+
+        if (deptError || !deptData) {
+            throw new Error("HR department not found.")
+        }
+
+        const { data: typeData, error: typeError } = await supabase
+            .from("requisition_requisition_type")
+            .select("id")
+            .eq("slug", requisitionType)
+            .eq("department_id", deptData.id)
+            .single()
+
+        if (typeError || !typeData) {
+            throw new Error("Requisition type not found.")
+        }
+
+        const { error: insertError } = await supabase
+            .from("requests")
+            .insert([
+                {
+                    org_id: "6892dc7e-ab35-4283-b327-5b00ac436b63",
+                    department_id: deptData.id,
+                    requisition_type_id: typeData.id,
+                    start_date: startDate,
+                    end_date: endDate,
+                    start_time: startTime,
+                    end_time: endTime,
+                    description: data.reason,
+                    supporting_document_url: fileUrl,
+                }
+            ])
+
+        if (insertError) throw insertError
+
+        setDialogTitle("Success")
+        setDialogMessage("Your request has been submitted successfully.")
+        setShowDialog(true)
+
+    } catch (error: any) {
+        setDialogTitle("Error")
+        setDialogMessage(error.message || "Something went wrong.")
+        setShowDialog(true)
     }
+}
 
     return (
         <Form {...form}>
@@ -390,28 +468,27 @@ export function HRRequestForm({ requisitionType }: HRRequestFormProps) {
                                         </p>
                                     </div>
                                 ) : (
-                                    <div className='border-2 border-dashed border-gray-200 rounded-lg p-8 text-center bg-gray-50 space-y-2'>
-                                        <Upload className='w-8 h-8 text-gray-400 mx-auto mb-2' />
-                                        <p
-                                            style={{
-                                                fontSize: '10px',
-                                                fontWeight: '400',
-                                                lineHeight: '100%'
+                                    <div className="relative">
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files[0]) {
+                                                    setFile(e.target.files[0])
+                                                }
                                             }}
-                                            className='text-grey-600'
-                                        >
-                                            Click to upload
-                                        </p>
-                                        <p
-                                            style={{
-                                                fontSize: '10px',
-                                                fontWeight: '400',
-                                                lineHeight: '100%'
-                                            }}
-                                            className='text-grey-500'
-                                        >
-                                            PDF, JPG, PNG (Max 5MB)
-                                        </p>
+                                        />
+
+                                        <div className='border-2 border-dashed border-gray-200 rounded-lg p-8 text-center bg-gray-50 space-y-2'>
+                                            <Upload className='w-8 h-8 text-gray-400 mx-auto mb-2' />
+                                            <p className='text-xs'>
+                                                {file ? file.name : "Click to upload"}
+                                            </p>
+                                            <p className='text-[10px] text-gray-500'>
+                                                PDF, JPG, PNG (Max 5MB)
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -425,7 +502,28 @@ export function HRRequestForm({ requisitionType }: HRRequestFormProps) {
                     </div>
                 </div>
 
-                {/* Additional Information and Leave Guidelines sections remain largely static or can be updated similarly if they depend on form values */}
+                {/* Dialog for success/error */}
+                <Dialog
+                    open={showDialog}
+                    onOpenChange={(open) => {
+                        setShowDialog(open);
+                        if (!open && dialogTitle === "Success") {
+                            router.push("/dashboard/requisition/raise-requisition");
+                        }
+                    }}
+                >
+                    <DialogContent className="max-w-sm">
+                        <DialogHeader>
+                            <DialogTitle>{dialogTitle}</DialogTitle>
+                            <DialogDescription>{dialogMessage}</DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button onClick={() => setShowDialog(false)}>OK</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Additional Information Section */}
                 <div className='col-span-2 border border-grey-200 rounded-md'>
                     <h3
                         style={{ fontSize: '16px', fontWeight: '600', lineHeight: '20px' }}
@@ -446,29 +544,24 @@ export function HRRequestForm({ requisitionType }: HRRequestFormProps) {
                                         className=' text-blue-600 space-y-1 list-disc pl-4'
                                     >
                                         <li>
-                                            Annual Leave: 20 days per year (must be requested 2 weeks in
-                                            advance)
+                                            Annual Leave: 20 days per year (must be requested 2 weeks in advance)
                                         </li>
                                         <li>
-                                            Sick Leave: 10 days per year (medical certificate required
-                                            after 3 days)
+                                            Sick Leave: 10 days per year (medical certificate required after 3 days)
                                         </li>
                                         <li>Personal Leave: 5 days per year</li>
                                         <li>All leave types are fully paid</li>
                                     </ul>
                                 </div>
-                                {/* Static Leave Balance section... */}
                                 <div className='border border-grey-100'>
                                     <p className='text-xs font-medium text-neutral-black p-3'>
                                         Leave Balance
                                     </p>
                                     <div className='grid grid-cols-4 gap-2 px-5 mb-3'>
-                                        {/* Placeholders for leave stats */}
                                         <div className='bg-[#ECF9F1] p-3 rounded-sm border border-grey-100'>
                                             <p className='text-2xl font-bold text-center text-green-500'>11</p>
                                             <p className='text-[8px] text-center text-neutral-black'>Annual Leave of 30 days</p>
                                         </div>
-                                        {/* ... other stats ... */}
                                     </div>
                                 </div>
                             </>

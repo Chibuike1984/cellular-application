@@ -1,5 +1,6 @@
 "use client";
 
+import { supabase } from "@/lib/lib/supabaseClient";
 import { startTransition, useEffect, useState, useMemo } from "react";
 import {
     Bell,
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteDialog } from "@/components/shared/delete-dialog";
+import { ApproveRequestDialog } from "@/components/shared/approve-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -34,6 +36,13 @@ import {
 } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
 import Link from "next/link";
 import { useSetBreadcrumbs } from "@/lib/stores/breadcrumb-store";
 import {
@@ -42,144 +51,121 @@ import {
     isSameDay,
     isSameWeek,
     isSameMonth,
-    startOfDay,
 } from "date-fns";
 
 interface RequestItem {
     id: string;
-    department: string;
-    items: string;
-    category: string;
-    orderLevels: string;
-    status: "Approved" | "Cancelled" | "Pending" | "Draft" | "Partially Approved";
     date: Date;
+    requestBy: string;
+    role: string;
+    totalItems: number;
+    estimatedAmount: number;
+    priority: "High" | "Medium" | "Low";
+    requestTo: string;
+    approvedBy: string;
+    approvalDate: Date | null;
+    status: "Draft" | "Disapproved" | "Approved" | "Partial Approval" | "Awaiting Approval";
 }
 
 const STATIC_REQUESTS: RequestItem[] = [
     {
         id: "a1b2c3d4-0001-0001-0001-000000000001",
-        department: "Engineering",
-        items: "Laptop, Monitor",
-        category: "IT Equipment",
-        orderLevels: "Level 1",
-        status: "Approved",
         date: new Date(),
+        requestBy: "Adebayo Olawale",
+        role: "Head of ICT",
+        totalItems: 5,
+        estimatedAmount: 250000,
+        priority: "High",
+        requestTo: "Procurement Dept",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
     },
     {
         id: "a1b2c3d4-0002-0002-0002-000000000002",
-        department: "HR",
-        items: "Office Chairs",
-        category: "Furniture",
-        orderLevels: "Level 2",
-        status: "Pending",
-        date: new Date(),
+        date: subDays(new Date(), 1),
+        requestBy: "Sarah Johnson",
+        role: "HR Manager",
+        totalItems: 3,
+        estimatedAmount: 45000,
+        priority: "Medium",
+        requestTo: "Finance Dept",
+        approvedBy: "Jane Smith",
+        approvalDate: new Date(),
+        status: "Awaiting Approval",
     },
     {
         id: "a1b2c3d4-0003-0003-0003-000000000003",
-        department: "Finance",
-        items: "Printer Cartridges",
-        category: "Stationery",
-        orderLevels: "Level 1",
-        status: "Draft",
         date: subDays(new Date(), 2),
+        requestBy: "Michael Chen",
+        role: "Finance Lead",
+        totalItems: 12,
+        estimatedAmount: 120000,
+        priority: "Low",
+        requestTo: "Admin Dept",
+        approvedBy: "Pending",
+        approvalDate: null,
+        status: "Draft",
     },
     {
         id: "a1b2c3d4-0004-0004-0004-000000000004",
-        department: "Operations",
-        items: "Safety Gloves, Helmets",
-        category: "Safety Equipment",
-        orderLevels: "Level 3",
-        status: "Partially Approved",
-        date: subDays(new Date(), 5),
+        date: subDays(new Date(), 3),
+        requestBy: "Emeka Obi",
+        role: "Operations Manager",
+        totalItems: 8,
+        estimatedAmount: 85000,
+        priority: "High",
+        requestTo: "Logistics Dept",
+        approvedBy: "Samuel Green",
+        approvalDate: subDays(new Date(), 1),
+        status: "Partial Approval",
     },
     {
         id: "a1b2c3d4-0005-0005-0005-000000000005",
-        department: "Marketing",
-        items: "Brochures, Banners",
-        category: "Marketing Materials",
-        orderLevels: "Level 2",
-        status: "Cancelled",
-        date: subDays(new Date(), 10),
-    },
-    {
-        id: "a1b2c3d4-0006-0006-0006-000000000006",
-        department: "Engineering",
-        items: "Server Rack",
-        category: "IT Equipment",
-        orderLevels: "Level 3",
-        status: "Pending",
-        date: subDays(new Date(), 1),
-    },
-    {
-        id: "a1b2c3d4-0007-0007-0007-000000000007",
-        department: "HR",
-        items: "Training Manuals",
-        category: "Stationery",
-        orderLevels: "Level 1",
-        status: "Approved",
-        date: subDays(new Date(), 3),
-    },
-    {
-        id: "a1b2c3d4-0008-0008-0008-000000000008",
-        department: "Finance",
-        items: "Calculator, Stapler",
-        category: "Stationery",
-        orderLevels: "Level 1",
-        status: "Draft",
-        date: subDays(new Date(), 7),
-    },
-    {
-        id: "a1b2c3d4-0009-0009-0009-000000000009",
-        department: "Operations",
-        items: "Forklift Parts",
-        category: "Machinery",
-        orderLevels: "Level 4",
-        status: "Approved",
         date: subDays(new Date(), 4),
-    },
-    {
-        id: "a1b2c3d4-0010-0010-0010-000000000010",
-        department: "Marketing",
-        items: "Camera, Tripod",
-        category: "IT Equipment",
-        orderLevels: "Level 2",
-        status: "Partially Approved",
-        date: subDays(new Date(), 6),
-    },
-    {
-        id: "a1b2c3d4-0011-0011-0011-000000000011",
-        department: "Engineering",
-        items: "Soldering Kit",
-        category: "Tools",
-        orderLevels: "Level 2",
-        status: "Cancelled",
-        date: subDays(new Date(), 12),
-    },
-    {
-        id: "a1b2c3d4-0012-0012-0012-000000000012",
-        department: "HR",
-        items: "Desk Lamp",
-        category: "Furniture",
-        orderLevels: "Level 1",
-        status: "Pending",
-        date: subDays(new Date(), 8),
+        requestBy: "Fatima Yusuf",
+        role: "Marketing Head",
+        totalItems: 2,
+        estimatedAmount: 15000,
+        priority: "Low",
+        requestTo: "Store Dept",
+        approvedBy: "Rejected",
+        approvalDate: subDays(new Date(), 2),
+        status: "Disapproved",
     },
 ];
 
 const getStatusColor = (status: string) => {
     switch (status) {
         case "Approved":
-            return "bg-green-50 border-[#CCCCCC] text-[#194D30]";
-        case "Cancelled":
-            return "bg-red-50 border-[#CCCCCC] text-red-800";
-        case "Pending":
-            return "bg-yellow-50 border-[#CCCCCC] text-yellow-800";
+            return "text-green-700";
+        case "Awaiting Approval":
+            return "text-yellow-700";
+        case "Disapproved":
+            return "text-red-700";
         case "Draft":
-            return "bg-gray-100 border-[#CCCCCC] text-gray-700";
-        case "Partially Approved":
-            return "bg-blue-50 border-[#CCCCCC] text-blue-800";
+            return "text-neutral-black";
+        case "Partial Approval":
+            return "text-blue-700";
         default:
-            return "bg-gray-100 text-gray-700";
+            return "text-gray-700";
+    }
+};
+
+const getDotColor = (status: string) => {
+    switch (status) {
+        case "Approved":
+            return "bg-green-700";
+        case "Awaiting Approval":
+            return "bg-yellow-700";
+        case "Disapproved":
+            return "bg-red-700";
+        case "Draft":
+            return "bg-neutral-black";
+        case "Partial Approval":
+            return "bg-blue-700";
+        default:
+            return "bg-gray-700";
     }
 };
 
@@ -240,17 +226,25 @@ export function DepartmentalRequest() {
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+    // Dropdown Filter States
+    const [selectedPriorityDropdown, setSelectedPriorityDropdown] = useState("all");
+    const [selectedRoleDropdown, setSelectedRoleDropdown] = useState("all");
+    const [selectedRequestedByDropdown, setSelectedRequestedByDropdown] = useState("all");
+    const [selectedRequestedToDropdown, setSelectedRequestedToDropdown] = useState("all");
+    const [selectedStatusDropdown, setSelectedStatusDropdown] = useState("all");
+
     const [requests, setRequests] = useState<RequestItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+    const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+    const [selectedRequestForApproval, setSelectedRequestForApproval] = useState<RequestItem | null>(null);
 
     const itemsPerPage = 10;
-
     const setBreadcrumbs = useSetBreadcrumbs();
 
     useEffect(() => {
-        // Simulate a brief loading state then load static data
         const timer = setTimeout(() => {
             setRequests(STATIC_REQUESTS);
             setLoading(false);
@@ -270,31 +264,48 @@ export function DepartmentalRequest() {
         setDeleteDialogOpen(true);
     };
 
-    const uniqueDepartments = useMemo(() => Array.from(new Set(requests.map(item => item.department))), [requests]);
-    const uniqueCategories = useMemo(() => Array.from(new Set(requests.map(item => item.category))), [requests]);
+    const handleApproveClick = (item: RequestItem) => {
+        setSelectedRequestForApproval(item);
+        setApproveDialogOpen(true);
+    };
+
+    const handleApproveSubmit = (items: any[]) => {
+        // Here you would typically send the data to Supabase
+        console.log("Submitting approval for items:", items);
+        setApproveDialogOpen(false);
+    };
+
+    const uniqueRequestBy = useMemo(() => Array.from(new Set(requests.map(item => item.requestBy))), [requests]);
+    const uniqueRoles = useMemo(() => Array.from(new Set(requests.map(item => item.role))), [requests]);
+    const uniqueRequestedTo = useMemo(() => Array.from(new Set(requests.map(item => item.requestTo))), [requests]);
+    const uniquePriorities = useMemo(() => Array.from(new Set(requests.map(item => item.priority))), [requests]);
+    const uniqueStatuses = useMemo(() => Array.from(new Set(requests.map(item => item.status))), [requests]);
 
     const filteredData = useMemo(() => {
         return requests.filter((item) => {
-            if (selectedTab !== "all" && item.status.toLowerCase() !== selectedTab.toLowerCase()) {
+            // Tab filter based on Priority
+            if (selectedTab !== "all" && item.priority.toLowerCase() !== selectedTab.toLowerCase()) {
                 return false;
             }
+
+            // Dropdown filters
+            if (selectedPriorityDropdown !== "all" && item.priority !== selectedPriorityDropdown) return false;
+            if (selectedRoleDropdown !== "all" && item.role !== selectedRoleDropdown) return false;
+            if (selectedRequestedByDropdown !== "all" && item.requestBy !== selectedRequestedByDropdown) return false;
+            if (selectedRequestedToDropdown !== "all" && item.requestTo !== selectedRequestedToDropdown) return false;
+            if (selectedStatusDropdown !== "all" && item.status !== selectedStatusDropdown) return false;
+
             const itemDate = item.date;
-            if (dateRange === "day") {
-                if (!isSameDay(itemDate, new Date())) return false;
-            } else if (dateRange === "week") {
-                if (!isSameWeek(itemDate, new Date())) return false;
-            } else if (dateRange === "month") {
-                if (!isSameMonth(itemDate, new Date())) return false;
-            }
-            if (selectedDepartments.length > 0 && !selectedDepartments.includes(item.department)) {
-                return false;
-            }
-            if (selectedCategories.length > 0 && !selectedCategories.includes(item.category)) {
-                return false;
-            }
+            if (dateRange === "day" && !isSameDay(itemDate, new Date())) return false;
+            if (dateRange === "week" && !isSameWeek(itemDate, new Date())) return false;
+            if (dateRange === "month" && !isSameMonth(itemDate, new Date())) return false;
+
+            if (selectedDepartments.length > 0 && !selectedDepartments.includes(item.requestBy)) return false;
+            if (selectedCategories.length > 0 && !selectedCategories.includes(item.role)) return false;
+
             return true;
         });
-    }, [requests, selectedTab, dateRange, selectedDepartments, selectedCategories]);
+    }, [requests, selectedTab, dateRange, selectedDepartments, selectedCategories, selectedPriorityDropdown, selectedRoleDropdown, selectedRequestedByDropdown, selectedRequestedToDropdown, selectedStatusDropdown]);
 
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
     const paginatedData = filteredData.slice(
@@ -304,7 +315,7 @@ export function DepartmentalRequest() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [selectedTab, dateRange, selectedDepartments, selectedCategories]);
+    }, [selectedTab, dateRange, selectedDepartments, selectedCategories, selectedPriorityDropdown, selectedRoleDropdown, selectedRequestedByDropdown, selectedRequestedToDropdown, selectedStatusDropdown]);
 
     const handleDepartmentToggle = (dept: string) => {
         setSelectedDepartments(prev =>
@@ -320,24 +331,26 @@ export function DepartmentalRequest() {
 
     const tabs = [
         { id: "all", label: "All", count: requests.length },
-        { id: "approved", label: "Approved", count: requests.filter(item => item.status === "Approved").length },
-        { id: "pending", label: "Pending", count: requests.filter(item => item.status === "Pending").length },
-        { id: "draft", label: "Draft", count: requests.filter(item => item.status === "Draft").length },
-        { id: "partially approved", label: "Partially Approved", count: requests.filter(item => item.status === "Partially Approved").length },
-        { id: "cancelled", label: "Cancelled", count: requests.filter(item => item.status === "Cancelled").length },
+        { id: "high", label: "High", count: requests.filter(item => item.priority === "High").length },
+        { id: "medium", label: "Medium", count: requests.filter(item => item.priority === "Medium").length },
+        { id: "low", label: "Low", count: requests.filter(item => item.priority === "Low").length },
     ];
 
     const handleExport = () => {
-        const headers = ["ID", "Date", "Department", "Items", "Category", "Order Levels", "Status"];
+        const headers = ["RQ-ID", "Request Date", "Request By", "Role", "Total Items", "Estimated Amount(NGN)", "Priority", "Request To", "Approved By", "Approval Date", "Status"];
         const csvContent = [
             headers.join(","),
             ...filteredData.map(item => [
                 item.id,
                 format(item.date, "yyyy-MM-dd"),
-                `"${item.department}"`,
-                `"${item.items}"`,
-                `"${item.category}"`,
-                `"${item.orderLevels}"`,
+                `"${item.requestBy}"`,
+                `"${item.role}"`,
+                item.totalItems,
+                item.estimatedAmount,
+                item.priority,
+                `"${item.requestTo}"`,
+                `"${item.approvedBy}"`,
+                item.approvalDate ? format(item.approvalDate, "yyyy-MM-dd") : "-",
                 item.status
             ].join(","))
         ].join("\n");
@@ -347,7 +360,7 @@ export function DepartmentalRequest() {
         if (link.download !== undefined) {
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
-            link.setAttribute("download", "my_requests.csv");
+            link.setAttribute("download", "departmental_requests.csv");
             link.style.visibility = "hidden";
             document.body.appendChild(link);
             link.click();
@@ -371,28 +384,21 @@ export function DepartmentalRequest() {
     return (
         <div style={{ fontFamily: "Poppins" }}>
             <div className="bg-white shadow-sm rounded-lg">
-                {/* Tabs and Actions */}
-                <div className="px-6 py-7 ">
+                {/* Tabs and Actions Header */}
+                <div className="px-6 py-7">
                     <div className="flex border-b border-gray-200 pb-3 items-center justify-between mb-4">
                         <div className="flex items-center gap-8">
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setSelectedTab(tab.id)}
-                                    className={`pb-2 text-sm font-medium transition-colors relative ${selectedTab === tab.id
-                                        ? "text-neutral-black"
-                                        : "text-[#919191]"
+                                    className={`pb-2 text-sm font-medium transition-colors relative ${selectedTab === tab.id ? "text-neutral-black" : "text-[#919191]"
                                         }`}
                                 >
                                     {tab.label}
-                                    {tab.count && (
-                                        <span className="ml-1">
-                                            ({tab.count})
-                                        </span>
-                                    )}
+                                    {tab.count !== undefined && <span className="ml-1">({tab.count})</span>}
                                     {selectedTab === tab.id && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-500">
-                                        </div>
+                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-500"></div>
                                     )}
                                 </button>
                             ))}
@@ -402,7 +408,8 @@ export function DepartmentalRequest() {
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant="ghost"
-                                        className={`text-orange-500 hover:bg-orange-50 ${selectedDepartments.length > 0 || selectedCategories.length > 0 ? "bg-orange-50" : ""}`}
+                                        className={`text-orange-500 hover:bg-orange-50 ${selectedDepartments.length > 0 || selectedCategories.length > 0 ? "bg-orange-50" : ""
+                                            }`}
                                     >
                                         <ListFilter className="w-6 h-6" />
                                     </Button>
@@ -410,34 +417,34 @@ export function DepartmentalRequest() {
                                 <PopoverContent className="w-64 p-4" align="end">
                                     <div className="space-y-4">
                                         <div className="space-y-2">
-                                            <h4 className="font-medium text-sm text-gray-900">Departments</h4>
+                                            <h4 className="font-medium text-sm text-gray-900">Request By</h4>
                                             <div className="grid gap-2 max-h-40 overflow-y-auto">
-                                                {uniqueDepartments.map(dept => (
-                                                    <div key={dept} className="flex items-center space-x-2">
+                                                {uniqueRequestBy.map(name => (
+                                                    <div key={name} className="flex items-center space-x-2">
                                                         <Checkbox
-                                                            id={`dept-${dept}`}
-                                                            checked={selectedDepartments.includes(dept)}
-                                                            onCheckedChange={() => handleDepartmentToggle(dept)}
+                                                            id={`requestBy-${name}`}
+                                                            checked={selectedDepartments.includes(name)}
+                                                            onCheckedChange={() => handleDepartmentToggle(name)}
                                                         />
-                                                        <Label htmlFor={`dept-${dept}`} className="text-sm font-normal cursor-pointer">
-                                                            {dept}
+                                                        <Label htmlFor={`requestBy-${name}`} className="text-sm font-normal cursor-pointer">
+                                                            {name}
                                                         </Label>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <h4 className="font-medium text-sm text-gray-900">Categories</h4>
+                                            <h4 className="font-medium text-sm text-gray-900">Roles</h4>
                                             <div className="grid gap-2 max-h-40 overflow-y-auto">
-                                                {uniqueCategories.map(cat => (
-                                                    <div key={cat} className="flex items-center space-x-2">
+                                                {uniqueRoles.map(role => (
+                                                    <div key={role} className="flex items-center space-x-2">
                                                         <Checkbox
-                                                            id={`cat-${cat}`}
-                                                            checked={selectedCategories.includes(cat)}
-                                                            onCheckedChange={() => handleCategoryToggle(cat)}
+                                                            id={`role-${role}`}
+                                                            checked={selectedCategories.includes(role)}
+                                                            onCheckedChange={() => handleCategoryToggle(role)}
                                                         />
-                                                        <Label htmlFor={`cat-${cat}`} className="text-sm font-normal cursor-pointer">
-                                                            {cat}
+                                                        <Label htmlFor={`role-${role}`} className="text-sm font-normal cursor-pointer">
+                                                            {role}
                                                         </Label>
                                                     </div>
                                                 ))}
@@ -479,46 +486,92 @@ export function DepartmentalRequest() {
                         </div>
                     </div>
 
-                    {/* Date Range */}
-                    <div className="flex justify-between items-center gap-4">
-                        <div className="flex gap-2">
-                            {["Day", "Week", "Month"].map((range) => (
-                                <Button
-                                    key={range}
-                                    variant={dateRange === range.toLowerCase()
-                                        ? "default"
-                                        : "outline"}
-                                    style={{ width: "110px", height: "35px" }}
-                                    onClick={() =>
-                                        setDateRange(range.toLowerCase())}
-                                    className={dateRange === range.toLowerCase()
-                                        ? "bg-gray-800 text-white"
-                                        : "border-gray-200"}
-                                >
-                                    {range}
-                                </Button>
-                            ))}
+                    {/* Filter Bar with Selectors and Navigation */}
+                    <div className="flex justify-between items-center gap-4 bg-[#F9FAFB] border border-gray-100 p-3">
+                        <div className="flex flex-wrap gap-4">
+                            <Select value={selectedPriorityDropdown} onValueChange={setSelectedPriorityDropdown}>
+                                <SelectTrigger className="w-[160px] h-[35px] border-gray-200 bg-white">
+                                    <SelectValue placeholder="Priority" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Priority</SelectItem>
+                                    {uniquePriorities.map(p => (
+                                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={selectedRoleDropdown} onValueChange={setSelectedRoleDropdown}>
+                                <SelectTrigger className="w-[160px] h-[35px] border-gray-200 bg-white">
+                                    <SelectValue placeholder="Role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Role</SelectItem>
+                                    {uniqueRoles.map(r => (
+                                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={selectedRequestedByDropdown} onValueChange={setSelectedRequestedByDropdown}>
+                                <SelectTrigger className="w-[180px] h-[35px] border-gray-200 bg-white">
+                                    <SelectValue placeholder="Requested By" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Requested By</SelectItem>
+                                    {uniqueRequestBy.map(name => (
+                                        <SelectItem key={name} value={name}>{name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={selectedRequestedToDropdown} onValueChange={setSelectedRequestedToDropdown}>
+                                <SelectTrigger className="w-[180px] h-[35px] border-gray-200 bg-white">
+                                    <SelectValue placeholder="Requested To" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Requested To</SelectItem>
+                                    {uniqueRequestedTo.map(to => (
+                                        <SelectItem key={to} value={to}>{to}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={selectedStatusDropdown} onValueChange={setSelectedStatusDropdown}>
+                                <SelectTrigger className="w-[160px] h-[35px] border-gray-200 bg-white">
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Status</SelectItem>
+                                    {uniqueStatuses.map(s => (
+                                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         <div className="flex items-center gap-1">
                             <Button
                                 variant="ghost"
+                                size="sm"
                                 className="text-[#666666] bg-[#F2F2F2] border border-[#E6E6E6]"
                             >
                                 {"<"}
                             </Button>
                             <Button
+                                size="sm"
                                 style={{
                                     fontSize: "14px",
                                     fontWeight: "400",
                                     lineHeight: "20px",
                                 }}
-                                className="bg-[#F4F5F7] text-[#666666]"
+                                className="bg-[#F4F5F7] text-[#666666] hover:bg-[#EAEBED]"
                             >
                                 Today
                             </Button>
                             <Button
                                 variant="ghost"
+                                size="sm"
                                 className="text-[#666666] bg-[#F2F2F2] border border-[#E6E6E6]"
                             >
                                 {">"}
@@ -527,17 +580,21 @@ export function DepartmentalRequest() {
                     </div>
                 </div>
 
-                {/* Table */}
+                {/* Table Section */}
                 <div className="px-6 py-4 overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-[#F2F2F2]">
                             <tr>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626] rounded-tl-lg">ID</th>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Date</th>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Department</th>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Items</th>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Requisition Type</th>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Order Levels</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626] rounded-tl-lg">RQ-ID</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Request Date</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Request By</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Role</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Total Items</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Estimated Amount(NGN)</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Priority</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Request To</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Approved By</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Approval Date</th>
                                 <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Status</th>
                                 <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626] rounded-tr-lg">Actions</th>
                             </tr>
@@ -545,7 +602,7 @@ export function DepartmentalRequest() {
                         <tbody>
                             {paginatedData.map((item, idx) => (
                                 <tr
-                                    key={idx}
+                                    key={item.id}
                                     className={`hover:bg-gray-50 ${idx % 2 === 0 ? "bg-white" : "bg-[#F4F5F7]"}`}
                                 >
                                     <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-[#5B5B5B] text-center">
@@ -555,25 +612,48 @@ export function DepartmentalRequest() {
                                         {format(item.date, "dd MMM yyyy")}
                                     </td>
                                     <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-[#5B5B5B] text-center">
-                                        {item.department}
+                                        {item.requestBy}
                                     </td>
                                     <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
-                                        {item.items}
+                                        {item.role}
                                     </td>
                                     <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
-                                        {item.category}
+                                        {item.totalItems}
                                     </td>
                                     <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
-                                        {item.orderLevels}
+                                        {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(item.estimatedAmount)}
                                     </td>
-                                    <td className="py-3 px-4 text-center">
-                                        <span className={`inline-block w-[94px] text-center px-3 py-2 text-xs ${getStatusColor(item.status)}`}>
-                                            {item.status}
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-center">
+                                        <span className={`px-6 py-2 text-[10px] ${item.priority === 'High' ? 'bg-orange-100 text-red-800' :
+                                            item.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                                                item.priority === 'Low' ? 'bg-green-100 text-green-800' : ''
+                                            }`}>
+                                            {item.priority}
                                         </span>
                                     </td>
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
+                                        {item.requestTo}
+                                    </td>
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
+                                        {item.approvedBy}
+                                    </td>
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
+                                        {item.approvalDate ? format(item.approvalDate, "dd MMM yyyy") : "-"}
+                                    </td>
                                     <td className="py-3 px-4 text-center">
-                                        <div className="flex items-center gap-3">
-                                            <SquarePen className="w-4 h-4" />
+                                        <div className="flex justify-center">
+                                            <span className={`inline-flex items-center justify-center gap-1.5 text-nowrap h-[32px] text-center px-3 py-2 text-xs border border-[#CCCCCC] rounded-full ${getStatusColor(item.status)}`}>
+                                                <span className={`w-2 h-2 rounded-full ${getDotColor(item.status)}`}></span>
+                                                {item.status}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="py-3 px-4 text-center">
+                                        <div className="flex items-center gap-3 justify-center">
+                                            <SquarePen
+                                                className="w-4 h-4 cursor-pointer text-blue-500 hover:text-blue-600"
+                                                onClick={() => handleApproveClick(item)}
+                                            />
                                             <Trash2
                                                 className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-600"
                                                 onClick={() => handleDeleteClick(item.id)}
@@ -584,7 +664,7 @@ export function DepartmentalRequest() {
                             ))}
                             {paginatedData.length === 0 && (
                                 <tr>
-                                    <td colSpan={8} className="py-8 text-center text-gray-500 text-sm">
+                                    <td colSpan={12} className="py-8 text-center text-gray-500 text-sm">
                                         No requests found for the selected filters.
                                     </td>
                                 </tr>
@@ -593,7 +673,7 @@ export function DepartmentalRequest() {
                     </table>
                 </div>
 
-                {/* Pagination */}
+                {/* Pagination Section */}
                 <div className="px-6 py-4 flex items-center justify-between border-t border-gray-100">
                     <span className="text-sm text-gray-500">
                         Page {currentPage} of {Math.max(1, totalPages)}
@@ -642,11 +722,49 @@ export function DepartmentalRequest() {
                         </Button>
                     </div>
                 </div>
+
                 <DeleteDialog
                     open={deleteDialogOpen}
                     onOpenChange={setDeleteDialogOpen}
                     onConfirm={confirmDelete}
                 />
+
+                {selectedRequestForApproval && (
+                    <ApproveRequestDialog
+                        key={selectedRequestForApproval.id}
+                        open={approveDialogOpen}
+                        onOpenChange={setApproveDialogOpen}
+                        onSubmit={handleApproveSubmit}
+                        requestId={`RQ-${selectedRequestForApproval.id.slice(0, 8).toUpperCase()}`}
+                        requestedBy={selectedRequestForApproval.requestBy}
+                        date={format(selectedRequestForApproval.date, "yyyy-MM-dd")}
+                        // Mocking initial items for demonstration
+                        initialItems={[
+                            {
+                                id: "1",
+                                itemName: "Office Supplies",
+                                sku: "SKU-001",
+                                category: "General",
+                                currentStock: "10",
+                                reorderLevel: "5",
+                                reqQty: "20",
+                                urgency: "Medium",
+                                action: "pending",
+                            },
+                            {
+                                id: "2",
+                                itemName: "Kitchenware",
+                                sku: "SKU-002",
+                                category: "Kitchen",
+                                currentStock: "2",
+                                reorderLevel: "5",
+                                reqQty: "10",
+                                urgency: "High",
+                                action: "pending",
+                            }
+                        ]}
+                    />
+                )}
             </div>
         </div>
     );

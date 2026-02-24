@@ -137,6 +137,10 @@ export function MyRequest() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
+    const canDelete = (status: RequestItem["status"]) => {
+    return status === "Pending" || status === "Draft";
+    };
+
     const itemsPerPage = 10;
 
     const setBreadcrumbs = useSetBreadcrumbs();
@@ -189,27 +193,40 @@ export function MyRequest() {
         fetchRequests();
     }, []);
 
+    const handleDeleteClick = (id: string) => {
+    setItemToDelete(id);
+    setDeleteDialogOpen(true);
+};
+
+
     const confirmDelete = async () => {
-        if (!itemToDelete) return;
+    if (!itemToDelete) return;
 
-        const { error } = await supabase
-            .from("requisition_table")
-            .delete()
-            .eq("id", itemToDelete);
+    const item = requests.find(r => r.id === itemToDelete);
 
-        if (error) {
-            console.error(error);
-        } else {
-            setRequests(prev => prev.filter(item => item.id !== itemToDelete));
-        }
+    // Extra protection — prevent deleting restricted statuses
+    if (!item || !canDelete(item.status)) {
         setDeleteDialogOpen(false);
         setItemToDelete(null);
-    };
+        return;
+    }
 
-    const handleDeleteClick = (id: string) => {
-        setItemToDelete(id);
-        setDeleteDialogOpen(true);
-    };
+    const { error } = await supabase
+        .from("requisition_table")
+        .delete()
+        .eq("id", itemToDelete);
+
+    if (error) {
+        console.error(error);
+    } else {
+        setRequests(prev =>
+            prev.filter(item => item.id !== itemToDelete)
+        );
+    }
+
+    setDeleteDialogOpen(false);
+    setItemToDelete(null);
+};
 
     const uniqueDepartments = useMemo(() => Array.from(new Set(requests.map(item => item.department))), [requests]);
     const uniqueCategories = useMemo(() => Array.from(new Set(requests.map(item => item.category))), [requests]);
@@ -633,9 +650,22 @@ export function MyRequest() {
                                         <div className="flex items-center gap-3">
                                             <SquarePen className="w-4 h-4" />
                                             {/* <Trash2 className="w-4 h-4 cursor-pointer" /> */}
-                                            <Trash2
+                                            {/* <Trash2
                                                 className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-600"
                                                 onClick={() => handleDeleteClick(item.id)}
+                                            /> */}
+
+                                            <Trash2
+                                                className={`w-4 h-4 ${
+                                                    canDelete(item.status)
+                                                        ? "cursor-pointer text-red-500 hover:text-red-600"
+                                                        : "text-gray-300 cursor-not-allowed"
+                                                }`}
+                                                onClick={() => {
+                                                    if (canDelete(item.status)) {
+                                                        handleDeleteClick(item.id);
+                                                    }
+                                                }}
                                             />
                                         </div>
                                     </td>

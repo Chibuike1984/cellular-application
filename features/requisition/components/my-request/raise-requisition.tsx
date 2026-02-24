@@ -87,7 +87,6 @@ const requisitionTypesByDepartment: Record<string, Array<{ id: string; label: st
 
 export function RaiseRequisition() {
     const router = useRouter();
-
     const [selectedDepartment, setSelectedDepartment] = useState<string>("inventory");
     const [selectedRequisitionType, setSelectedRequisitionType] = useState<string | null>(null);
 
@@ -109,12 +108,23 @@ export function RaiseRequisition() {
     const isEquipmentRequisition = selectedRequisitionType === "equipment-req";
     const isRepairRequest = selectedRequisitionType === "repair-req";
 
-    let currentItems: RequisitionItem[] = [];
-    if (isInventoryRequisition) currentItems = inventoryItems;
-    else if (isOfficeSupplies) currentItems = officeSuppliesItems;
-    else if (isEquipmentRequisition) currentItems = equipmentItems;
-    else if (isRepairRequest) currentItems = repairItems;
+    const currentItems: RequisitionItem[] = isInventoryRequisition
+        ? inventoryItems
+        : isOfficeSupplies
+        ? officeSuppliesItems
+        : isEquipmentRequisition
+        ? equipmentItems
+        : isRepairRequest
+        ? repairItems
+        : [];
 
+    const isHRDepartment = selectedDepartment === "hr";
+    const isFinanceDepartment = selectedDepartment === "finance";
+    const isITDepartment = selectedDepartment === "it";
+
+    const usesFormLayout = isHRDepartment || isFinanceDepartment || isITDepartment;
+
+    // Load from localStorage on type change
     useEffect(() => {
         if (!selectedRequisitionType) return;
         const saved = localStorage.getItem(selectedRequisitionType);
@@ -128,12 +138,16 @@ export function RaiseRequisition() {
         setHasLoaded(true);
     }, [selectedRequisitionType]);
 
+    // Save to localStorage on items change
     useEffect(() => {
         if (!hasLoaded || !selectedRequisitionType) return;
-        if (isInventoryRequisition) localStorage.setItem(selectedRequisitionType, JSON.stringify(inventoryItems));
-        else if (isOfficeSupplies) localStorage.setItem(selectedRequisitionType, JSON.stringify(officeSuppliesItems));
-        else if (isEquipmentRequisition) localStorage.setItem(selectedRequisitionType, JSON.stringify(equipmentItems));
-        else if (isRepairRequest) localStorage.setItem(selectedRequisitionType, JSON.stringify(repairItems));
+        const save = (items: RequisitionItem[]) =>
+            localStorage.setItem(selectedRequisitionType, JSON.stringify(items));
+
+        if (isInventoryRequisition) save(inventoryItems);
+        else if (isOfficeSupplies) save(officeSuppliesItems);
+        else if (isEquipmentRequisition) save(equipmentItems);
+        else if (isRepairRequest) save(repairItems);
     }, [inventoryItems, officeSuppliesItems, equipmentItems, repairItems, selectedRequisitionType, hasLoaded]);
 
     const handleAddItem = (item: Omit<RequisitionItem, "id">) => {
@@ -153,78 +167,46 @@ export function RaiseRequisition() {
 
     const handleUpdateItem = (id: string, updated: Partial<RequisitionItem>) => {
         const updateItems = (items: RequisitionItem[], setter: typeof setInventoryItems) =>
-            setter(items.map(i => i.id === id ? { ...i, ...updated } : i));
+            setter(items.map(i => (i.id === id ? { ...i, ...updated } : i)));
+
         if (isInventoryRequisition) updateItems(inventoryItems, setInventoryItems);
         else if (isOfficeSupplies) updateItems(officeSuppliesItems, setOfficeSuppliesItems);
         else if (isEquipmentRequisition) updateItems(equipmentItems, setEquipmentItems);
         else if (isRepairRequest) updateItems(repairItems, setRepairItems);
     };
 
-    const isHRDepartment = selectedDepartment === "hr";
-    const isFinanceDepartment = selectedDepartment === "finance";
-    const isITDepartment = selectedDepartment === "it";
-    const usesFormLayout = isHRDepartment || isFinanceDepartment || isITDepartment;
-
-    const handleSubmitRequest = async () => {
-    if (!selectedDepartment || !selectedRequisitionType) {
+   // Submit request
+const handleSubmitRequest = async () => {
+    if (!selectedDepartment || !selectedRequisitionType || currentItems.length === 0) {
         setDialogTitle("Error");
-        setDialogMessage("Please select a department and requisition type.");
-        setShowDialog(true);
-        return;
-    }
-
-    if (!currentItems || currentItems.length === 0) {
-        setDialogTitle("Error");
-        setDialogMessage("Cannot submit: no items added to the request.");
+        setDialogMessage(
+            !selectedDepartment || !selectedRequisitionType
+                ? "Please select a department and requisition type."
+                : "Cannot submit: no items added to the request."
+        );
         setShowDialog(true);
         return;
     }
 
     try {
-        const inserts = currentItems.map(item => ({
-            org_id: "6892dc7e-ab35-4283-b327-5b00ac436b63",
-            items: item.itemName,
-            current_stock: item.currentStock || null,
-            reorder_level: item.reorderLevel || null,
-            requested_qty: parseInt(item.requestedQty, 10) || 0,
-            order_level: item.urgency,
-            notes: item.notes || "",
-            content_note: contentNote || "", 
-            department_id: "3317734c-c571-4e55-bdb5-e105be791f16",
-            requisition_type_id: "1f3a0e63-edf5-4878-983f-cd31cd3911d9",
-        }));
+        // Fetch department ID
+        const { data: deptData, error: deptError } = await supabase
+            .from("requisition_department")
+            .select("id")
+            .eq("slug", selectedDepartment)
+            .single();
+        if (deptError || !deptData) throw new Error("Invalid department.");
 
-        const { error } = await supabase.from("requisition_table").insert(inserts);
-        if (error) throw error;
+        // Fetch requisition type ID filtered by department
+        const { data: typeData, error: typeError } = await supabase
+            .from("requisition_requisition_type")
+            .select("id")
+            .eq("slug", selectedRequisitionType)
+            .eq("department_id", deptData.id)  // <-- critical fix
+            .single();
+        if (typeError || !typeData) throw new Error("Invalid requisition type for this department.");
 
-        setDialogTitle("Success");
-        setDialogMessage("Requisition submitted successfully!");
-        setShowDialog(true);
-        } catch (err) {
-            console.error(err);
-            setDialogTitle("Error");
-            setDialogMessage("Failed to submit requisition. Please try again.");
-            setShowDialog(true);
-        }
-    };
-
-    const handleSaveRequest = async (status: "pending" | "draft") => {
-    if (!selectedDepartment || !selectedRequisitionType) {
-        setDialogTitle("Error");
-        setDialogMessage("Please select a department and requisition type.");
-        setShowDialog(true);
-        return;
-    }
-
-    // ✅ Check if there are items to save
-    if (!currentItems || currentItems.length === 0) {
-        setDialogTitle("Error");
-        setDialogMessage("Cannot save: no items added to the requisition.");
-        setShowDialog(true);
-        return;
-    }
-
-    try {
+        // Prepare insert data
         const inserts = currentItems.map(item => ({
             org_id: "6892dc7e-ab35-4283-b327-5b00ac436b63",
             items: item.itemName,
@@ -234,33 +216,86 @@ export function RaiseRequisition() {
             order_level: item.urgency,
             notes: item.notes || "",
             content_note: contentNote || "",
-            department_id: "3317734c-c571-4e55-bdb5-e105be791f16",
-            requisition_type_id: "1f3a0e63-edf5-4878-983f-cd31cd3911d9",
-            status: status,
+            department_id: deptData.id,
+            requisition_type_id: typeData.id,
         }));
 
-        const { error } = await supabase.from("requisition_table").insert(inserts);
-        if (error) throw error;
+        const { error: insertError } = await supabase
+            .from("requisition_table")
+            .insert(inserts);
+        if (insertError) throw insertError;
 
         setDialogTitle("Success");
-        setDialogMessage(status === "draft"
-            ? "Requisition saved as draft!"
-            : "Requisition submitted successfully!");
+        setDialogMessage("Requisition submitted successfully!");
         setShowDialog(true);
-        } catch (err) {
-            console.error(err);
-            setDialogTitle("Error");
-            setDialogMessage("Failed to process requisition. Please try again.");
-            setShowDialog(true);
-        }
-    };
+    } catch (err) {
+        console.error("Supabase fetch error:", err);
+        setDialogTitle("Error");
+        setDialogMessage("Failed to submit requisition. Please try again.");
+        setShowDialog(true);
+    }
+};
 
+// Save request as draft or pending
+const handleSaveRequest = async (status: "draft" | "pending") => {
+    if (!selectedDepartment || !selectedRequisitionType || currentItems.length === 0) {
+        return handleSubmitRequest();
+    }
+
+    try {
+        // Fetch department ID
+        const { data: deptData, error: deptError } = await supabase
+            .from("requisition_department")
+            .select("id")
+            .eq("slug", selectedDepartment)
+            .single();
+        if (deptError || !deptData) throw new Error("Invalid department.");
+
+        // Fetch requisition type ID filtered by department
+        const { data: typeData, error: typeError } = await supabase
+            .from("requisition_requisition_type")
+            .select("id")
+            .eq("slug", selectedRequisitionType)
+            .eq("department_id", deptData.id)  // <-- critical fix
+            .single();
+        if (typeError || !typeData) throw new Error("Invalid requisition type for this department.");
+
+        // Prepare insert data
+        const inserts = currentItems.map(item => ({
+            org_id: "6892dc7e-ab35-4283-b327-5b00ac436b63",
+            items: item.itemName,
+            current_stock: item.currentStock || null,
+            reorder_level: item.reorderLevel || null,
+            requested_qty: parseInt(item.requestedQty, 10) || 0,
+            order_level: item.urgency,
+            notes: item.notes || "",
+            content_note: contentNote || "",
+            department_id: deptData.id,
+            requisition_type_id: typeData.id,
+            status,
+        }));
+
+        const { error: insertError } = await supabase
+            .from("requisition_table")
+            .insert(inserts);
+        if (insertError) throw insertError;
+
+        setDialogTitle("Success");
+        setDialogMessage(status === "draft" ? "Requisition saved as draft!" : "Requisition submitted successfully!");
+        setShowDialog(true);
+    } catch (err) {
+        console.error("Supabase fetch error:", err);
+        setDialogTitle("Error");
+        setDialogMessage("Failed to save requisition. Please try again.");
+        setShowDialog(true);
+    }
+};
 
     return (
         <div>
             {/* Header */}
             <Link href="/dashboard/requisition/my-request">
-                <Button variant="ghost" size="sm" className="text-grey-700 border border-[#CCCCCC] rounded-full bg-white w-23.75 h-9.75 mb-5">
+                <Button variant="ghost" size="sm" className="text-grey-700 border border-[#CCCCCC] rounded-full bg-white w-24 h-10 mb-5">
                     <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
             </Link>
@@ -272,7 +307,7 @@ export function RaiseRequisition() {
                     <span className="text-neutral-black text-[12px]">#PR-2025-0847</span>
                 </div>
 
-                {/* Department */}
+                {/* Department Selection */}
                 <div className="mb-4">
                     <p className="text-[#3E3E3E] font-semibold text-[12px] mb-3">Select Department*</p>
                     <div className="flex flex-wrap gap-3">
@@ -292,7 +327,7 @@ export function RaiseRequisition() {
                 {/* Requisition Type */}
                 <div className="mb-8">
                     <p className="text-[#3E3E3E] font-semibold text-[12px] mb-3">Requisition Type *</p>
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 flex-wrap">
                         {availableRequisitionTypes.map(type => (
                             <button
                                 key={type.id}
@@ -338,30 +373,24 @@ export function RaiseRequisition() {
                 )}
             </div>
 
-
-             {/* Dialog for success/error */}
-                <Dialog
-                    open={showDialog}
-                    onOpenChange={(open) => {
-                        setShowDialog(open);
-                        // Navigate only after the dialog is fully closed
-                        if (!open && dialogTitle === "Success") {
-                            router.push("/dashboard/requisition/raise-requisition");
-                        }
-                    }}
-                >
-                    <DialogContent className="max-w-sm">
-                        <DialogHeader>
-                            <DialogTitle>{dialogTitle}</DialogTitle>
-                            <DialogDescription>{dialogMessage}</DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                            <Button onClick={() => setShowDialog(false)}>OK</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-
-
+            {/* Dialog */}
+            <Dialog
+                open={showDialog}
+                onOpenChange={(open) => {
+                    setShowDialog(open);
+                    if (!open && dialogTitle === "Success") router.push("/dashboard/requisition/raise-requisition");
+                }}
+            >
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>{dialogTitle}</DialogTitle>
+                        <DialogDescription>{dialogMessage}</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button onClick={() => setShowDialog(false)}>OK</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Footer */}
             <div className="flex justify-between items-center bg-white border rounded-bl-md rounded-br-md border-[#E6E6E6] h-[70px] px-4">
@@ -370,23 +399,23 @@ export function RaiseRequisition() {
                 </Link>
                 <div className="flex gap-3">
                     {!usesFormLayout && (
-                        <Button
-                            variant="secondary"
-                            className="px-3 py-2 bg-[#3E3E3E] h-[30px] w-[109px] border border-[#B3B3B3] text-white hover:bg-gray-900"
-                            onClick={() => handleSaveRequest("draft")}
-                            disabled={!selectedRequisitionType || currentItems.length === 0}
-                        >
-                            Save as Draft
-                        </Button>
-                    )}
-                    {!usesFormLayout && (
-                        <Button
-                            className="px-3 py-2 bg-orange-500 h-[30px] text-white hover:bg-orange-600"
-                            onClick={handleSubmitRequest}
-                            disabled={!selectedRequisitionType || currentItems.length === 0}
-                        >
-                            Submit for Approval
-                        </Button>
+                        <>
+                            <Button
+                                variant="secondary"
+                                className="px-3 py-2 bg-[#3E3E3E] h-[30px] w-[109px] border border-[#B3B3B3] text-white hover:bg-gray-900"
+                                onClick={() => handleSaveRequest("draft")}
+                                disabled={!selectedRequisitionType || currentItems.length === 0}
+                            >
+                                Save as Draft
+                            </Button>
+                            <Button
+                                className="px-3 py-2 bg-orange-500 h-[30px] text-white hover:bg-orange-600"
+                                onClick={handleSubmitRequest}
+                                disabled={!selectedRequisitionType || currentItems.length === 0}
+                            >
+                                Submit for Approval
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>
