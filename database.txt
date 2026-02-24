@@ -137,31 +137,3 @@ CREATE TABLE public.requests (
     CONSTRAINT requests_requisition_type_id_fkey FOREIGN KEY (requisition_type_id) REFERENCES public.requisition_requisition_type(id) ON DELETE SET NULL,
 );
 
-
-
-Item Name =  items text NOT NULL,  -- item names
-Current Stock = current_stock text,
-Reorder Level = reorder_level text,
-Requested Qty* = requested_qty integer NOT NULL,
-Urgency	 = order_level text NOT NULL,
-Notes = notes text,
-
-Department = department_id
-requisition type = requisition_type_id
-
-
-
-
-Human Resource  = hr
-
-
--- Human Resource department
-INSERT INTO public.requisition_requisition_type (name, department_id)
-SELECT 'Leave Request', id FROM public.requisition_department WHERE name='Human Resource';  = leave-req
-
-INSERT INTO public.requisition_requisition_type (name, department_id)
-SELECT 'Permission Request', id FROM public.requisition_department WHERE name='Human Resource'; = permission-req
-
-INSERT INTO public.requisition_requisition_type (name, department_id)
-SELECT 'Emergency Absent', id FROM public.requisition_department WHERE name='Human Resource'; = emergency-absent
-
