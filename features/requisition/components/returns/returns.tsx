@@ -55,97 +55,311 @@ import {
 interface RequestItem {
     id: string;
     date: Date;
-    requestBy: string;
-    role: string;
-    totalItems: number;
-    estimatedAmount: number;
+    returnedBy: string;
+    category: string;
+    itemsCount: number;
+    value: number;
     priority: "High" | "Medium" | "Low";
-    requestTo: string;
+    department: string;
     approvedBy: string;
     approvalDate: Date | null;
-    status: "Draft" | "Disapproved" | "Approved" | "Partial Approval" | "Awaiting Approval";
+    status: "Approved" | "Pending" | "Disapproved";
+    notes: string;
 }
 
 const STATIC_REQUESTS: RequestItem[] = [
     {
-        id: "a1b2c3d4-0001-0001-0001-000000000001",
+        id: "RET-001",
         date: new Date(),
-        requestBy: "Adebayo Olawale",
-        role: "Head of ICT",
-        totalItems: 5,
-        estimatedAmount: 250000,
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
         priority: "High",
-        requestTo: "Procurement Dept",
+        department: "Housekeeping",
         approvedBy: "John Doe",
         approvalDate: new Date(),
         status: "Approved",
+        notes: "Excess stock return"
     },
     {
-        id: "a1b2c3d4-0002-0002-0002-000000000002",
+        id: "RET-002",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-003",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-004",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-005",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-006",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-007",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-008",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-009",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-010",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-011",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-012",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-013",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-014",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-015",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-016",
+        date: new Date(),
+        returnedBy: "Adebayo Olawale",
+        category: "Cleaning Supplies",
+        itemsCount: 12,
+        value: 25000,
+        priority: "High",
+        department: "Housekeeping",
+        approvedBy: "John Doe",
+        approvalDate: new Date(),
+        status: "Approved",
+        notes: "Excess stock return"
+    },
+    {
+        id: "RET-002",
         date: subDays(new Date(), 1),
-        requestBy: "Sarah Johnson",
-        role: "HR Manager",
-        totalItems: 3,
-        estimatedAmount: 45000,
+        returnedBy: "Sarah Johnson",
+        category: "Kitchen Equipment",
+        itemsCount: 2,
+        value: 145000,
         priority: "Medium",
-        requestTo: "Finance Dept",
+        department: "Kitchen",
         approvedBy: "Jane Smith",
         approvalDate: new Date(),
-        status: "Awaiting Approval",
+        status: "Pending",
+        notes: "Damaged on arrival"
     },
     {
-        id: "a1b2c3d4-0003-0003-0003-000000000003",
+        id: "RET-003",
         date: subDays(new Date(), 2),
-        requestBy: "Michael Chen",
-        role: "Finance Lead",
-        totalItems: 12,
-        estimatedAmount: 120000,
+        returnedBy: "Michael Chen",
+        category: "Office Stationery",
+        itemsCount: 50,
+        value: 12000,
         priority: "Low",
-        requestTo: "Admin Dept",
+        department: "Administration",
         approvedBy: "Pending",
         approvalDate: null,
-        status: "Draft",
+        status: "Pending",
+        notes: "Wrong item ordered"
     },
     {
-        id: "a1b2c3d4-0004-0004-0004-000000000004",
+        id: "RET-004",
         date: subDays(new Date(), 3),
-        requestBy: "Emeka Obi",
-        role: "Operations Manager",
-        totalItems: 8,
-        estimatedAmount: 85000,
+        returnedBy: "Emeka Obi",
+        category: "Food & Beverage",
+        itemsCount: 5,
+        value: 85000,
         priority: "High",
-        requestTo: "Logistics Dept",
+        department: "Restaurant",
         approvedBy: "Samuel Green",
         approvalDate: subDays(new Date(), 1),
-        status: "Partial Approval",
+        status: "Approved",
+        notes: "Near expiry"
     },
     {
-        id: "a1b2c3d4-0005-0005-0005-000000000005",
+        id: "RET-005",
         date: subDays(new Date(), 4),
-        requestBy: "Fatima Yusuf",
-        role: "Marketing Head",
-        totalItems: 2,
-        estimatedAmount: 15000,
-        priority: "Low",
-        requestTo: "Store Dept",
+        returnedBy: "Fatima Yusuf",
+        category: "Linens",
+        itemsCount: 10,
+        value: 150000,
+        priority: "Medium",
+        department: "Housekeeping",
         approvedBy: "Rejected",
         approvalDate: subDays(new Date(), 2),
         status: "Disapproved",
-    },
+        notes: "Past return window"
+    }
 ];
 
 const getStatusColor = (status: string) => {
     switch (status) {
         case "Approved":
             return "text-green-700";
-        case "Awaiting Approval":
+        case "Pending":
             return "text-yellow-700";
         case "Disapproved":
             return "text-red-700";
         case "Draft":
             return "text-neutral-black";
-        case "Partial Approval":
-            return "text-blue-700";
         default:
             return "text-gray-700";
     }
@@ -155,14 +369,12 @@ const getDotColor = (status: string) => {
     switch (status) {
         case "Approved":
             return "bg-green-700";
-        case "Awaiting Approval":
+        case "Pending":
             return "bg-yellow-700";
         case "Disapproved":
             return "bg-red-700";
         case "Draft":
             return "bg-neutral-black";
-        case "Partial Approval":
-            return "bg-blue-700";
         default:
             return "bg-gray-700";
     }
@@ -219,7 +431,7 @@ function MyRequestSkeleton() {
     );
 }
 
-export function DepartmentalRequest() {
+export function Returns() {
     const [selectedTab, setSelectedTab] = useState("all");
     const [dateRange, setDateRange] = useState("month");
     const [currentPage, setCurrentPage] = useState(1);
@@ -228,10 +440,10 @@ export function DepartmentalRequest() {
 
     // Dropdown Filter States
     const [selectedPriorityDropdown, setSelectedPriorityDropdown] = useState("all");
-    const [selectedRoleDropdown, setSelectedRoleDropdown] = useState("all");
-    const [selectedRequestedByDropdown, setSelectedRequestedByDropdown] = useState("all");
-    const [selectedRequestedToDropdown, setSelectedRequestedToDropdown] = useState("all");
-    const [selectedStatusDropdown, setSelectedStatusDropdown] = useState("all");
+    const [selectedCategoryDropdown, setSelectedCategoryDropdown] = useState("all");
+    const [selectedDepartmentDropdown, setSelectedDepartmentDropdown] = useState("all");
+    const [selectedReturnedByDropdown, setSelectedReturnedByDropdown] = useState("all");
+    const [selectedApprovedByDropdown, setSelectedApprovedByDropdown] = useState("all");
 
     const [requests, setRequests] = useState<RequestItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -274,37 +486,38 @@ export function DepartmentalRequest() {
         setApproveDialogOpen(false);
     };
 
-    const uniqueRequestBy = useMemo(() => Array.from(new Set(requests.map(item => item.requestBy))), [requests]);
-    const uniqueRoles = useMemo(() => Array.from(new Set(requests.map(item => item.role))), [requests]);
-    const uniqueRequestedTo = useMemo(() => Array.from(new Set(requests.map(item => item.requestTo))), [requests]);
+    const uniqueReturnedBy = useMemo(() => Array.from(new Set(requests.map(item => item.returnedBy))), [requests]);
+    const uniqueCategories = useMemo(() => Array.from(new Set(requests.map(item => item.category))), [requests]);
+    const uniqueDepartments = useMemo(() => Array.from(new Set(requests.map(item => item.department))), [requests]);
     const uniquePriorities = useMemo(() => Array.from(new Set(requests.map(item => item.priority))), [requests]);
+    const uniqueApprovedBy = useMemo(() => Array.from(new Set(requests.map(item => item.approvedBy))), [requests]);
     const uniqueStatuses = useMemo(() => Array.from(new Set(requests.map(item => item.status))), [requests]);
 
     const filteredData = useMemo(() => {
         return requests.filter((item) => {
-            // Tab filter based on Priority
-            if (selectedTab !== "all" && item.priority.toLowerCase() !== selectedTab.toLowerCase()) {
+            // Tab filter based on Status
+            if (selectedTab !== "all" && item.status !== selectedTab) {
                 return false;
             }
 
             // Dropdown filters
             if (selectedPriorityDropdown !== "all" && item.priority !== selectedPriorityDropdown) return false;
-            if (selectedRoleDropdown !== "all" && item.role !== selectedRoleDropdown) return false;
-            if (selectedRequestedByDropdown !== "all" && item.requestBy !== selectedRequestedByDropdown) return false;
-            if (selectedRequestedToDropdown !== "all" && item.requestTo !== selectedRequestedToDropdown) return false;
-            if (selectedStatusDropdown !== "all" && item.status !== selectedStatusDropdown) return false;
+            if (selectedCategoryDropdown !== "all" && item.category !== selectedCategoryDropdown) return false;
+            if (selectedDepartmentDropdown !== "all" && item.department !== selectedDepartmentDropdown) return false;
+            if (selectedReturnedByDropdown !== "all" && item.returnedBy !== selectedReturnedByDropdown) return false;
+            if (selectedApprovedByDropdown !== "all" && item.approvedBy !== selectedApprovedByDropdown) return false;
 
             const itemDate = item.date;
             if (dateRange === "day" && !isSameDay(itemDate, new Date())) return false;
             if (dateRange === "week" && !isSameWeek(itemDate, new Date())) return false;
             if (dateRange === "month" && !isSameMonth(itemDate, new Date())) return false;
 
-            if (selectedDepartments.length > 0 && !selectedDepartments.includes(item.requestBy)) return false;
-            if (selectedCategories.length > 0 && !selectedCategories.includes(item.role)) return false;
+            if (selectedDepartments.length > 0 && !selectedDepartments.includes(item.department)) return false;
+            if (selectedCategories.length > 0 && !selectedCategories.includes(item.category)) return false;
 
             return true;
         });
-    }, [requests, selectedTab, dateRange, selectedDepartments, selectedCategories, selectedPriorityDropdown, selectedRoleDropdown, selectedRequestedByDropdown, selectedRequestedToDropdown, selectedStatusDropdown]);
+    }, [requests, selectedTab, dateRange, selectedDepartments, selectedCategories, selectedPriorityDropdown, selectedCategoryDropdown, selectedDepartmentDropdown, selectedReturnedByDropdown, selectedApprovedByDropdown]);
 
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
     const paginatedData = filteredData.slice(
@@ -314,7 +527,7 @@ export function DepartmentalRequest() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [selectedTab, dateRange, selectedDepartments, selectedCategories, selectedPriorityDropdown, selectedRoleDropdown, selectedRequestedByDropdown, selectedRequestedToDropdown, selectedStatusDropdown]);
+    }, [selectedTab, dateRange, selectedDepartments, selectedCategories, selectedPriorityDropdown, selectedCategoryDropdown, selectedDepartmentDropdown, selectedReturnedByDropdown, selectedApprovedByDropdown]);
 
     const handleDepartmentToggle = (dept: string) => {
         setSelectedDepartments(prev =>
@@ -330,26 +543,24 @@ export function DepartmentalRequest() {
 
     const tabs = [
         { id: "all", label: "All", count: requests.length },
-        { id: "high", label: "High", count: requests.filter(item => item.priority === "High").length },
-        { id: "medium", label: "Medium", count: requests.filter(item => item.priority === "Medium").length },
-        { id: "low", label: "Low", count: requests.filter(item => item.priority === "Low").length },
+        { id: "Approved", label: "Approved", count: requests.filter(item => item.status === "Approved").length },
+        { id: "Pending", label: "Pending", count: requests.filter(item => item.status === "Pending").length },
     ];
 
     const handleExport = () => {
-        const headers = ["RQ-ID", "Request Date", "Request By", "Role", "Total Items", "Estimated Amount(NGN)", "Priority", "Request To", "Approved By", "Approval Date", "Status"];
+        const headers = ["Return ID", "Date Initiated", "Returned By", "Category", "Items", "Value(NGN)", "Priority", "Department", "Approved By", "Status"];
         const csvContent = [
             headers.join(","),
             ...filteredData.map(item => [
                 item.id,
                 format(item.date, "yyyy-MM-dd"),
-                `"${item.requestBy}"`,
-                `"${item.role}"`,
-                item.totalItems,
-                item.estimatedAmount,
+                `"${item.returnedBy}"`,
+                `"${item.category}"`,
+                item.itemsCount,
+                item.value,
                 item.priority,
-                `"${item.requestTo}"`,
+                `"${item.department}"`,
                 `"${item.approvedBy}"`,
-                item.approvalDate ? format(item.approvalDate, "yyyy-MM-dd") : "-",
                 item.status
             ].join(","))
         ].join("\n");
@@ -371,7 +582,7 @@ export function DepartmentalRequest() {
         startTransition(() => {
             setBreadcrumbs([
                 { href: "/dashboard", label: "Requisition" },
-                { href: "/requisition/departmental-requests", label: "Departmental Requests" },
+                { href: "/requisition/returns", label: "Returns" },
             ]);
         });
     }, [setBreadcrumbs]);
@@ -416,34 +627,34 @@ export function DepartmentalRequest() {
                                 <PopoverContent className="w-64 p-4" align="end">
                                     <div className="space-y-4">
                                         <div className="space-y-2">
-                                            <h4 className="font-medium text-sm text-gray-900">Request By</h4>
+                                            <h4 className="font-medium text-sm text-gray-900">Departments</h4>
                                             <div className="grid gap-2 max-h-40 overflow-y-auto">
-                                                {uniqueRequestBy.map(name => (
-                                                    <div key={name} className="flex items-center space-x-2">
+                                                {uniqueDepartments.map(dept => (
+                                                    <div key={dept} className="flex items-center space-x-2">
                                                         <Checkbox
-                                                            id={`requestBy-${name}`}
-                                                            checked={selectedDepartments.includes(name)}
-                                                            onCheckedChange={() => handleDepartmentToggle(name)}
+                                                            id={`dept-${dept}`}
+                                                            checked={selectedDepartments.includes(dept)}
+                                                            onCheckedChange={() => handleDepartmentToggle(dept)}
                                                         />
-                                                        <Label htmlFor={`requestBy-${name}`} className="text-sm font-normal cursor-pointer">
-                                                            {name}
+                                                        <Label htmlFor={`dept-${dept}`} className="text-sm font-normal cursor-pointer">
+                                                            {dept}
                                                         </Label>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <h4 className="font-medium text-sm text-gray-900">Roles</h4>
+                                            <h4 className="font-medium text-sm text-gray-900">Categories</h4>
                                             <div className="grid gap-2 max-h-40 overflow-y-auto">
-                                                {uniqueRoles.map(role => (
-                                                    <div key={role} className="flex items-center space-x-2">
+                                                {uniqueCategories.map(cat => (
+                                                    <div key={cat} className="flex items-center space-x-2">
                                                         <Checkbox
-                                                            id={`role-${role}`}
-                                                            checked={selectedCategories.includes(role)}
-                                                            onCheckedChange={() => handleCategoryToggle(role)}
+                                                            id={`category-${cat}`}
+                                                            checked={selectedCategories.includes(cat)}
+                                                            onCheckedChange={() => handleCategoryToggle(cat)}
                                                         />
-                                                        <Label htmlFor={`role-${role}`} className="text-sm font-normal cursor-pointer">
-                                                            {role}
+                                                        <Label htmlFor={`category-${cat}`} className="text-sm font-normal cursor-pointer">
+                                                            {cat}
                                                         </Label>
                                                     </div>
                                                 ))}
@@ -489,7 +700,7 @@ export function DepartmentalRequest() {
                     <div className="flex justify-between items-center gap-4 bg-[#F9FAFB] border border-gray-100 p-3">
                         <div className="flex flex-wrap gap-4">
                             <Select value={selectedPriorityDropdown} onValueChange={setSelectedPriorityDropdown}>
-                                <SelectTrigger className="w-[160px] h-[35px] border-gray-200 bg-white">
+                                <SelectTrigger className="w-[150px] h-[35px] border-gray-200 bg-white">
                                     <SelectValue placeholder="Priority" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -500,50 +711,50 @@ export function DepartmentalRequest() {
                                 </SelectContent>
                             </Select>
 
-                            <Select value={selectedRoleDropdown} onValueChange={setSelectedRoleDropdown}>
-                                <SelectTrigger className="w-[160px] h-[35px] border-gray-200 bg-white">
-                                    <SelectValue placeholder="Role" />
+                            <Select value={selectedCategoryDropdown} onValueChange={setSelectedCategoryDropdown}>
+                                <SelectTrigger className="w-[150px] h-[35px] border-gray-200 bg-white">
+                                    <SelectValue placeholder="Category" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Role</SelectItem>
-                                    {uniqueRoles.map(r => (
-                                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                                    <SelectItem value="all">Category</SelectItem>
+                                    {uniqueCategories.map(c => (
+                                        <SelectItem key={c} value={c}>{c}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
 
-                            <Select value={selectedRequestedByDropdown} onValueChange={setSelectedRequestedByDropdown}>
-                                <SelectTrigger className="w-[180px] h-[35px] border-gray-200 bg-white">
-                                    <SelectValue placeholder="Requested By" />
+                            <Select value={selectedDepartmentDropdown} onValueChange={setSelectedDepartmentDropdown}>
+                                <SelectTrigger className="w-[150px] h-[35px] border-gray-200 bg-white">
+                                    <SelectValue placeholder="Department" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Requested By</SelectItem>
-                                    {uniqueRequestBy.map(name => (
+                                    <SelectItem value="all">Department</SelectItem>
+                                    {uniqueDepartments.map(d => (
+                                        <SelectItem key={d} value={d}>{d}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={selectedReturnedByDropdown} onValueChange={setSelectedReturnedByDropdown}>
+                                <SelectTrigger className="w-[150px] h-[35px] border-gray-200 bg-white">
+                                    <SelectValue placeholder="Returned By" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Returned By</SelectItem>
+                                    {uniqueReturnedBy.map(name => (
                                         <SelectItem key={name} value={name}>{name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
 
-                            <Select value={selectedRequestedToDropdown} onValueChange={setSelectedRequestedToDropdown}>
-                                <SelectTrigger className="w-[180px] h-[35px] border-gray-200 bg-white">
-                                    <SelectValue placeholder="Requested To" />
+                            <Select value={selectedApprovedByDropdown} onValueChange={setSelectedApprovedByDropdown}>
+                                <SelectTrigger className="w-[150px] h-[35px] border-gray-200 bg-white">
+                                    <SelectValue placeholder="Approved By" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Requested To</SelectItem>
-                                    {uniqueRequestedTo.map(to => (
-                                        <SelectItem key={to} value={to}>{to}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-
-                            <Select value={selectedStatusDropdown} onValueChange={setSelectedStatusDropdown}>
-                                <SelectTrigger className="w-[160px] h-[35px] border-gray-200 bg-white">
-                                    <SelectValue placeholder="Status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Status</SelectItem>
-                                    {uniqueStatuses.map(s => (
-                                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                                    <SelectItem value="all">Approved By</SelectItem>
+                                    {uniqueApprovedBy.map(name => (
+                                        <SelectItem key={name} value={name}>{name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -584,17 +795,16 @@ export function DepartmentalRequest() {
                     <table className="w-full">
                         <thead className="bg-[#F2F2F2]">
                             <tr>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626] rounded-tl-lg">RQ-ID</th>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Request Date</th>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Request By</th>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Role</th>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Total Items</th>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Estimated Amount(NGN)</th>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Priority</th>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Request To</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626] rounded-tl-lg">Return ID</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Items</th>
                                 <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Approved By</th>
-                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Approval Date</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Returned By</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Department</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Date Initiated</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Value</th>
                                 <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Status</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Category</th>
+                                <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626]">Notes</th>
                                 <th style={{ fontSize: "12px", fontWeight: "600", lineHeight: "100%" }} className="text-center py-4 px-4 text-[#262626] rounded-tr-lg">Actions</th>
                             </tr>
                         </thead>
@@ -605,39 +815,25 @@ export function DepartmentalRequest() {
                                     className={`hover:bg-gray-50 ${idx % 2 === 0 ? "bg-white" : "bg-[#F4F5F7]"}`}
                                 >
                                     <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-[#5B5B5B] text-center">
-                                        {"#" + item.id.slice(0, 8)}
+                                        {item.id}
+                                    </td>
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-[#5B5B5B] text-center text-nowrap">
+                                        {item.itemsCount} Items
                                     </td>
                                     <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-[#5B5B5B] text-center">
-                                        {format(item.date, "dd MMM yyyy")}
-                                    </td>
-                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-[#5B5B5B] text-center">
-                                        {item.requestBy}
-                                    </td>
-                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
-                                        {item.role}
-                                    </td>
-                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
-                                        {item.totalItems}
-                                    </td>
-                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
-                                        {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(item.estimatedAmount)}
-                                    </td>
-                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-center">
-                                        <span className={`px-6 py-2 text-[10px] ${item.priority === 'High' ? 'bg-orange-100 text-red-800' :
-                                            item.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                                                item.priority === 'Low' ? 'bg-green-100 text-green-800' : ''
-                                            }`}>
-                                            {item.priority}
-                                        </span>
-                                    </td>
-                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
-                                        {item.requestTo}
-                                    </td>
-                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
                                         {item.approvedBy}
                                     </td>
                                     <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
-                                        {item.approvalDate ? format(item.approvalDate, "dd MMM yyyy") : "-"}
+                                        {item.returnedBy}
+                                    </td>
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
+                                        {item.department}
+                                    </td>
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
+                                        {format(item.date, "dd MMM yyyy")}
+                                    </td>
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
+                                        {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 }).format(item.value)}
                                     </td>
                                     <td className="py-3 px-4 text-center">
                                         <div className="flex justify-center">
@@ -646,6 +842,12 @@ export function DepartmentalRequest() {
                                                 {item.status}
                                             </span>
                                         </div>
+                                    </td>
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
+                                        {item.category}
+                                    </td>
+                                    <td style={{ fontSize: "12px", fontWeight: "400" }} className="py-3 px-4 text-neutral-black text-center">
+                                        {item.notes}
                                     </td>
                                     <td className="py-3 px-4 text-center">
                                         <div className="flex items-center gap-3 justify-center">
@@ -734,32 +936,24 @@ export function DepartmentalRequest() {
                         open={approveDialogOpen}
                         onOpenChange={setApproveDialogOpen}
                         onSubmit={handleApproveSubmit}
-                        requestId={`RQ-${selectedRequestForApproval.id.slice(0, 8).toUpperCase()}`}
-                        requestedBy={selectedRequestForApproval.requestBy}
+                        requestId={selectedRequestForApproval.id}
+                        requestedBy={selectedRequestForApproval.returnedBy}
                         date={format(selectedRequestForApproval.date, "yyyy-MM-dd")}
+                        viewType="return"
                         // Mocking initial items for demonstration
                         initialItems={[
                             {
                                 id: "1",
-                                itemName: "Office Supplies",
-                                sku: "SKU-001",
-                                category: "General",
-                                currentStock: "10",
-                                reorderLevel: "5",
-                                reqQty: "20",
-                                urgency: "Medium",
-                                action: "pending",
-                            },
-                            {
-                                id: "2",
-                                itemName: "Kitchenware",
-                                sku: "SKU-002",
-                                category: "Kitchen",
-                                currentStock: "2",
-                                reorderLevel: "5",
-                                reqQty: "10",
+                                itemName: "Cleaning Supplies",
+                                sku: "CS-001",
+                                category: "Cleaning",
+                                currentStock: "0",
+                                reorderLevel: "0",
+                                reqQty: "12",
                                 urgency: "High",
+                                reason: "Excess stock from previous project",
                                 action: "pending",
+                                notes: ""
                             }
                         ]}
                     />

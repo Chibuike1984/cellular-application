@@ -1,5 +1,6 @@
 'use client'
 
+import { supabase } from "@/lib/lib/supabaseClient";
 import { useState, useEffect } from 'react'
 import { Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -23,6 +24,14 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog"
 import { useRequisitionStore } from '@/lib/stores/requisition-store';
 import { FinanceRequisitionSchema, FinanceRequisitionFormValues } from '../../schemas';
 
@@ -30,15 +39,16 @@ interface FinanceRequestFormProps {
     requisitionType: string
 }
 
-export function FinanceRequestForm({
-    requisitionType
-}: FinanceRequestFormProps) {
-    const [infoTab, setInfoTab] = useState<
-        'policy' | 'limits' | 'docs' | 'process'
-    >('policy')
-
+export function FinanceRequestForm({ requisitionType }: FinanceRequestFormProps) {
     const router = useRouter();
     const { addRequest } = useRequisitionStore();
+    const [file, setFile] = useState<File | null>(null);
+
+    const [showDialog, setShowDialog] = useState(false);
+    const [dialogTitle, setDialogTitle] = useState('');
+    const [dialogMessage, setDialogMessage] = useState('');
+
+    const [infoTab, setInfoTab] = useState<'policy' | 'limits' | 'docs' | 'process'>('policy')
 
     const isExpenseReimbursement = requisitionType === 'expense-reimb'
     const isAdvancePayment = requisitionType === 'advance-payment'
@@ -57,7 +67,6 @@ export function FinanceRequestForm({
         },
     });
 
-    // Reset form when requisitionType changes
     useEffect(() => {
         form.reset({
             department: "finance",
@@ -71,70 +80,94 @@ export function FinanceRequestForm({
     }, [requisitionType, form])
 
     const getCategoryOptions = () => {
-        if (isExpenseReimbursement) {
-            return ['Travel', 'Meals', 'Office Supplies', 'Equipment', 'Other']
-        } else if (isAdvancePayment) {
-            return ['Salary', 'Benefits', 'Allowance', 'Other']
-        } else {
-            return ['Office Supplies', 'Stationery', 'Supplies', 'Other']
-        }
+        if (isExpenseReimbursement) return ['Travel', 'Meals', 'Office Supplies', 'Equipment', 'Other'];
+        if (isAdvancePayment) return ['Salary', 'Benefits', 'Allowance', 'Other'];
+        return ['Office Supplies', 'Stationery', 'Supplies', 'Other'];
     }
 
-    const onSubmit = (data: FinanceRequisitionFormValues) => {
-        // Map form data to RequestItem
-        let items = `${data.category} - ${data.amount}`;
-        let category = "";
+    const onSubmit = async (data: FinanceRequisitionFormValues) => {
+        try {
+            if (!file) throw new Error("Please upload a supporting document.");
+            if (file.size > 5 * 1024 * 1024) throw new Error("File must be less than 5MB.");
 
-        if (isExpenseReimbursement) category = "Expense Reimbursement";
-        else if (isAdvancePayment) category = "Advance Payment";
-        else if (isPettyCash) category = "Petty Cash";
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}.${fileExt}`;
+            const filePath = `finance-documents/${fileName}`;
 
-        const newRequest = {
-            id: `#${Math.floor(Math.random() * 10000)}`,
-            department: "Accounts / Finance",
-            items: items,
-            category: category,
-            orderLevels: "-",
-            status: "Pending" as const,
-            date: new Date(data.expenseDate),
-        };
+            const { error: uploadError } = await supabase.storage
+                .from("request-documents")
+                .upload(filePath, file, { upsert: true });
+            if (uploadError) throw uploadError;
 
-        addRequest(newRequest);
-        router.push("/dashboard/my-request");
+            const { data: publicUrlData } = supabase.storage
+                .from("request-documents")
+                .getPublicUrl(filePath);
+            const fileUrl = publicUrlData.publicUrl;
+
+            const { data: deptData, error: deptError } = await supabase
+                .from("requisition_department")
+                .select("id")
+                .eq("slug", "finance")
+                .single();
+            if (deptError || !deptData) throw new Error("Finance department not found.");
+
+            const { data: typeData, error: typeError } = await supabase
+                .from("requisition_requisition_type")
+                .select("id")
+                .eq("slug", requisitionType)
+                .eq("department_id", deptData.id)
+                .single();
+            if (typeError || !typeData) throw new Error("Requisition type not found.");
+
+            const { error: insertError } = await supabase
+                .from("requests")
+                .insert([{
+                    org_id: "6892dc7e-ab35-4283-b327-5b00ac436b63",
+                    department_id: deptData.id,
+                    requisition_type_id: typeData.id,
+                    start_date: data.expenseDate,
+                    description: data.reason,
+                    supporting_document_url: fileUrl,
+                    amount: data.amount,
+                }]);
+            if (insertError) throw insertError;
+
+            setDialogTitle("Success");
+            setDialogMessage("Your request has been submitted successfully.");
+            setShowDialog(true);
+
+        } catch (error: any) {
+            setDialogTitle("Error");
+            setDialogMessage(error.message || "Something went wrong.");
+            setShowDialog(true);
+        }
     }
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className='grid grid-cols-5 gap-6 rounded-lg border border-grey-200 p-3'>
-                {/* Request Form - Left Side */}
+
+                {/* Left Side Form */}
                 <div className='col-span-3 border border-grey-200 rounded-md'>
-                    <h2
-                        style={{ fontSize: '16px', fontWeight: '600', lineHeight: '20px' }}
-                        className='bg-[#F2F2F2] h-[41px] mb-6 py-2 px-6 text-neutral-black'
-                    >
+                    <h2 className='bg-[#F2F2F2] h-[41px] mb-6 py-2 px-6 text-neutral-black font-semibold text-[16px]'>
                         Request Details
                     </h2>
 
                     <div className='space-y-4 px-6 mb-4'>
                         <div className='grid grid-cols-3 gap-4'>
-                            <FormField
-                                control={form.control}
-                                name="category"
+                            {/* Category */}
+                            <FormField control={form.control} name="category"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className='text-sm font-medium text-neutral-black block mb-2'>Category*</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                        <FormLabel className='text-sm font-medium text-neutral-black mb-2'>Category*</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl>
                                                 <SelectTrigger className='bg-white border-grey-200 w-full rounded-full'>
                                                     <SelectValue placeholder='Select category...' />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                {getCategoryOptions().map(opt => (
-                                                    <SelectItem key={opt} value={opt}>
-                                                        {opt}
-                                                    </SelectItem>
-                                                ))}
+                                                {getCategoryOptions().map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -142,38 +175,26 @@ export function FinanceRequestForm({
                                 )}
                             />
 
-                            <FormField
-                                control={form.control}
-                                name="amount"
+                            {/* Amount */}
+                            <FormField control={form.control} name="amount"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className='text-sm font-medium text-neutral-black block mb-2'>Amount*</FormLabel>
+                                        <FormLabel className='text-sm font-medium text-neutral-black mb-2'>Amount*</FormLabel>
                                         <FormControl>
-                                            <Input
-                                                type='number'
-                                                placeholder='Enter amount'
-                                                className=' border-grey-200 rounded-full'
-                                                {...field}
-                                                onChange={e => field.onChange(Number(e.target.value))}
-                                            />
+                                            <Input type='number' placeholder='Enter amount' {...field} onChange={e => field.onChange(Number(e.target.value))} className='border-grey-200 rounded-full' />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
 
-                            <FormField
-                                control={form.control}
-                                name="expenseDate"
+                            {/* Expense Date */}
+                            <FormField control={form.control} name="expenseDate"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className='text-sm font-medium text-neutral-black block mb-2'>Expense Date*</FormLabel>
+                                        <FormLabel className='text-sm font-medium text-neutral-black mb-2'>Expense Date*</FormLabel>
                                         <FormControl>
-                                            <Input
-                                                type='date'
-                                                className=' border-grey-200 rounded-full'
-                                                {...field}
-                                            />
+                                            <Input type='date' {...field} className='border-grey-200 rounded-full' />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -182,57 +203,65 @@ export function FinanceRequestForm({
                         </div>
 
                         <div className='grid grid-cols-2 gap-4'>
-                            <FormField
-                                control={form.control}
-                                name="reason"
+                            {/* Reason */}
+                            <FormField control={form.control} name="reason"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className='text-[#3E3E3E] text-xs font-normal'>Reason / Explanation *</FormLabel>
+                                        <FormLabel className='text-xs text-[#3E3E3E] font-normal'>Reason / Explanation *</FormLabel>
                                         <FormControl>
-                                            <Textarea
-                                                style={{ fontSize: '10px', fontWeight: '400' }}
-                                                placeholder='Provide detailed description of the expense/payment'
-                                                className='min-h-32 bg-white border-grey-200 resize-none text-[#B3B3B3]'
-                                                {...field}
-                                            />
+                                            <Textarea placeholder='Explain reason for request' className='min-h-32 border-[#CCCCCC] resize-none text-grey-300 text-[10px]' {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
 
-                            <div>
-                                <label
-                                    style={{ fontSize: '12px', fontWeight: '400' }}
-                                    className=' text-[#3E3E3E] block mb-2'
-                                >
-                                    Upload Supporting Document*
-                                </label>
-                                <div className='border-2 border-dashed border-grey-400 rounded-lg p-8 text-center bg-[#F2F2F2]'>
-                                    <Upload className='w-[24px] h-[24px] text-[#3E3E3E] mx-auto mb-2' />
-                                    <p
-                                        style={{ fontSize: '10px', fontWeight: '400' }}
-                                        className='text-[#3E3E3E]'
-                                    >
-                                        Click to upload
-                                    </p>
-                                    <p
-                                        style={{ fontSize: '10px', fontWeight: '400' }}
-                                        className='text-[#666666]'
-                                    >
-                                        PDF, JPG, PNG (Max 5MB)
-                                    </p>
-                                </div>
-                            </div>
+                            {/* File Upload */}
+                             <div className="relative mt-6">
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files[0]) {
+                                                    setFile(e.target.files[0])
+                                                }
+                                            }}
+                                        />
+
+                                        <div className='border-2 border-dashed border-gray-200 rounded-lg p-8 text-center bg-gray-50 space-y-2'>
+                                            <Upload className='w-8 h-3 text-gray-400 mx-auto mb-2 mt-2' />
+                                            <p className='text-xs'>
+                                                {file ? file.name : "Click to upload"}
+                                            </p>
+                                            <p className='text-[10px] text-gray-500'>
+                                                PDF, JPG, PNG (Max 5MB)
+                                            </p>
+                                        </div>
+                                    </div>
                         </div>
 
-                        <Button type="submit" className='w-full bg-gray-800 text-white hover:bg-gray-900 py-2'>
-                            Add
-                        </Button>
+                        <Button type="submit" className='w-full bg-gray-800 text-white hover:bg-gray-900 py-2'>Add</Button>
                     </div>
                 </div>
 
-                {/* Additional Information - Right Side */}
+                {/* Dialog */}
+                <Dialog open={showDialog} onOpenChange={(open) => {
+                    setShowDialog(open);
+                    if (!open && dialogTitle === "Success") router.push("/dashboard/requisition/raise-requisition");
+                }}>
+                    <DialogContent className="max-w-sm">
+                        <DialogHeader>
+                            <DialogTitle>{dialogTitle}</DialogTitle>
+                            <DialogDescription>{dialogMessage}</DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button onClick={() => setShowDialog(false)}>OK</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                                {/* Additional Information - Right Side */}
                 <div className='col-span-2 border border-grey-200 rounded-md'>
                     <h3
                         style={{ fontSize: '16px', fontWeight: '600', lineHeight: '20px' }}

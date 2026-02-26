@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Upload } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { supabase } from "@/lib/lib/supabaseClient";
+import { useState, useEffect } from 'react';
+import { Upload } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,34 +23,43 @@ import {
     FormItem,
     FormLabel,
     FormMessage,
-} from "@/components/ui/form"
+} from "@/components/ui/form";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog";
 import { useRequisitionStore } from '@/lib/stores/requisition-store';
 import { ITRequisitionSchema, ITRequisitionFormValues } from '../../schemas';
 
 interface ITRequestFormProps {
-    requisitionType: string
+    requisitionType: string;
 }
 
 export function ITRequestForm({ requisitionType }: ITRequestFormProps) {
-    const [infoTab, setInfoTab] = useState<
-        'policy' | 'allocation' | 'docs' | 'sla'
-    >('policy')
+    const [infoTab, setInfoTab] = useState<'policy' | 'allocation' | 'docs' | 'sla'>('policy');
+    const [file, setFile] = useState<File | null>(null);               
+    const [showDialog, setShowDialog] = useState(false);
+    const [dialogTitle, setDialogTitle] = useState("");
+    const [dialogMessage, setDialogMessage] = useState("");
 
     const router = useRouter();
     const { addRequest } = useRequisitionStore();
 
-    const isSoftwareLicense = requisitionType === 'software-license'
-    const isEquipmentRepairs = requisitionType === 'equipment-repairs'
-    const isMaintenanceRepair = requisitionType === 'maintenance-repair'
-    const isSystemAccess = requisitionType === 'system-access'
-    const isHardwareUpgrade = requisitionType === 'hardware-upgrade'
+    const isSoftwareLicense = requisitionType === 'software-license';
+    const isEquipmentRepairs = requisitionType === 'equipment-repairs';
+    const isMaintenanceRepair = requisitionType === 'maintenance-repair';
+    const isSystemAccess = requisitionType === 'system-access';
+    const isHardwareUpgrade = requisitionType === 'hardware-upgrade';
 
     const form = useForm<ITRequisitionFormValues>({
         resolver: zodResolver(ITRequisitionSchema),
         defaultValues: {
             department: "it",
             requisitionType: requisitionType as any,
-            // Initialize fields to empty strings/defaults to avoid controlled/uncontrolled warnings
             softwareName: "",
             licenseType: "",
             equipmentName: "",
@@ -61,7 +71,6 @@ export function ITRequestForm({ requisitionType }: ITRequestFormProps) {
         },
     });
 
-    // Reset form when requisitionType changes
     useEffect(() => {
         form.reset({
             department: "it",
@@ -74,16 +83,16 @@ export function ITRequestForm({ requisitionType }: ITRequestFormProps) {
             requiredDate: "",
             specifications: "",
             businessJustification: "",
-        })
-    }, [requisitionType, form])
+        });
+    }, [requisitionType, form]);
 
     const getFieldLabel = () => {
-        if (isSoftwareLicense) return 'Software Name*'
-        if (isEquipmentRepairs || isMaintenanceRepair) return 'Equipment Name*'
-        if (isSystemAccess) return 'System/Application Name*'
-        if (isHardwareUpgrade) return 'Hardware Name*'
-        return 'Item Name*'
-    }
+        if (isSoftwareLicense) return 'Software Name*';
+        if (isEquipmentRepairs || isMaintenanceRepair) return 'Equipment Name*';
+        if (isSystemAccess) return 'System/Application Name*';
+        if (isHardwareUpgrade) return 'Hardware Name*';
+        return 'Item Name*';
+    };
 
     const getLicenseTypeOptions = () => {
         if (isSoftwareLicense) {
@@ -92,42 +101,81 @@ export function ITRequestForm({ requisitionType }: ITRequestFormProps) {
                 'Annual Subscription',
                 'Perpetual Subscription',
                 'Free / Trial'
-            ]
+            ];
         }
-        return []
-    }
+        return [];
+    };
 
-    const onSubmit = (data: ITRequisitionFormValues) => {
-        let items = "";
-        let category = "";
+    const onSubmit = async (data: ITRequisitionFormValues): Promise<boolean> => {
+        try {
+            let fileUrl: string | null = null;
 
-        if (data.requisitionType === 'software-license') {
-            items = `${data.softwareName} (${data.licenseType})`;
-            category = "Software License";
-        } else if (data.requisitionType === 'equipment-repairs' || data.requisitionType === 'maintenance-repair') {
-            items = `${data.equipmentName} (Repair)`;
-            category = "Equipment Repair";
-        } else if (data.requisitionType === 'system-access') {
-            items = `${data.equipmentName} (Access)`;
-            category = "System Access";
-        } else if (data.requisitionType === 'hardware-upgrade') {
-            items = `${data.equipmentName} (Upgrade)`;
-            category = "Hardware Upgrade";
+            if (file) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Date.now()}.${fileExt}`;
+                const filePath = `uploads/${fileName}`;
+
+                const { error: uploadError } = await supabase
+                    .storage
+                    .from('requisition-documents')
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                const { data: publicData } = supabase
+                    .storage
+                    .from('requisition-documents')
+                    .getPublicUrl(filePath);
+
+                fileUrl = publicData?.publicUrl || null;
+            }
+
+            const { data: deptData, error: deptError } = await supabase
+                .from("requisition_department")
+                .select("id")
+                .eq("slug", "it") 
+                .single();
+
+            if (deptError || !deptData) throw new Error("Department not found.");
+
+            const { data: typeData, error: typeError } = await supabase
+                .from("requisition_requisition_type")
+                .select("id")
+                .eq("slug", requisitionType)
+                .eq("department_id", deptData.id)
+                .single();
+
+            if (typeError || !typeData) throw new Error("Requisition type not found.");
+
+            const { error: insertError } = await supabase.from('requests').insert({
+                org_id: '6892dc7e-ab35-4283-b327-5b00ac436b63',
+                department_id: deptData.id,
+                requisition_type_id: typeData.id,
+                start_date: data.requiredDate,
+                description: data.businessJustification,
+                quantity: Number(data.quantity),
+                urgency: data.priority,
+                supporting_document_url: fileUrl
+            });
+
+            if (insertError) throw insertError;
+
+            setDialogTitle('Success');
+            setDialogMessage('Your request has been submitted successfully.');
+            setShowDialog(true);
+            form.reset();
+            setFile(null);
+
+            return true;
+
+        } catch (error: any) {
+            console.error(error);
+            setDialogTitle('Error');
+            setDialogMessage(error.message || 'Something went wrong.');
+            setShowDialog(true);
+            return false;
         }
-
-        const newRequest = {
-            id: `#${Math.floor(Math.random() * 10000)}`,
-            department: "IT Department",
-            items: items,
-            category: category,
-            orderLevels: "-",
-            status: "Pending" as const,
-            date: new Date(data.requiredDate),
-        };
-
-        addRequest(newRequest);
-        router.push("/dashboard/my-request");
-    }
+    };
 
     return (
         <Form {...form}>
@@ -413,31 +461,59 @@ export function ITRequestForm({ requisitionType }: ITRequestFormProps) {
                             </div>
 
                             <div>
-                                <label className='text-sm font-medium text-[#3E3E3E] block mb-2'>
-                                    Upload Supporting Document*
-                                </label>
-                                <div className=' h-[155px] border-2 border-dashed border-grey-400 rounded-lg p-8 text-center bg-[#F2F2F2]'>
-                                    <Upload className='w-[24px] h-[24px] text-[#3E3E3E] mx-auto mb-2' />
-                                    <p
-                                        style={{ fontSize: '10px', fontWeight: '400' }}
-                                        className='text-[#3E3E3E]'
-                                    >
-                                        Click to upload
-                                    </p>
-                                    <p
-                                        style={{ fontSize: '10px', fontWeight: '400' }}
-                                        className='text-[#666666]'
-                                    >
-                                        PDF, JPG, PNG (Max 5MB)
-                                    </p>
-                                </div>
-                            </div>
+                        <label className='text-sm font-medium text-[#3E3E3E] block mb-2'>
+                            Upload Supporting Document*
+                        </label>
+                        <div className='relative h-[155px] border-2 border-dashed border-grey-400 rounded-lg p-8 text-center bg-[#F2F2F2] cursor-pointer'>
+                            <input
+                                            type="file"
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files[0]) {
+                                                    setFile(e.target.files[0])
+                                                }
+                                            }}
+                                        />
+
+                                            <Upload className='w-8 h-3 text-gray-400 mx-auto mb-2 mt-2' />
+                                            <p className='text-xs'>
+                                                {file ? file.name : "Click to upload"}
+                                            </p>
+                                            <p className='text-[10px] text-gray-500'>
+                                                PDF, JPG, PNG (Max 5MB)
+                                            </p>
+                        </div>
+                    </div>
                         </div>
                         <Button type="submit" className='w-full bg-neutral-black text-white font-bold hover:bg-grey-900 py-2 mb-5'>
                             Add
                         </Button>
                     </div>
                 </div>
+
+
+                                {/* Dialog for success/error */}
+                                <Dialog
+                                    open={showDialog}
+                                    onOpenChange={(open) => {
+                                        setShowDialog(open);
+                                        if (!open && dialogTitle === "Success") {
+                                            router.push("/dashboard/requisition/raise-requisition");
+                                        }
+                                    }}
+                                >
+                                    <DialogContent className="max-w-sm">
+                                        <DialogHeader>
+                                            <DialogTitle>{dialogTitle}</DialogTitle>
+                                            <DialogDescription>{dialogMessage}</DialogDescription>
+                                        </DialogHeader>
+                                        <DialogFooter>
+                                            <Button onClick={() => setShowDialog(false)}>OK</Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                
 
                 {/* Additional Information */}
                 <div className='col-span-1 border border-grey-200 rounded-lg'>

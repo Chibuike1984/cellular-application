@@ -23,6 +23,7 @@ interface RequestItem {
     reqQty: string
     urgency: "High" | "Medium" | "Low"
     reqNotes?: string
+    reason?: string // New field for returns
     action: ItemAction
     notes?: string
 }
@@ -36,6 +37,7 @@ interface ApproveRequestDialogProps {
     date?: string
     requestNotes?: string
     initialItems?: RequestItem[]
+    viewType?: "requisition" | "return" // New prop to distinguish views
 }
 
 const urgencyStyles: Record<string, string> = {
@@ -52,54 +54,8 @@ export function ApproveRequestDialog({
     requestedBy = "John Doe (Kitchen)",
     date = "2025-10-28",
     requestNotes = "Items needed for upcoming week operations and special catering event on Saturday.",
-    initialItems = [
-        {
-            id: "1",
-            itemName: "Rice (50kg bags)",
-            sku: "PR-002-2025",
-            category: "Supplies",
-            currentStock: "2 bags",
-            reorderLevel: "10 bags",
-            reqQty: "50 bags",
-            urgency: "High",
-            reqNotes: "Don't add this t...",
-            action: "approved",
-        },
-        {
-            id: "2",
-            itemName: "Cooking Oil (5L)",
-            sku: "PR-003-2005",
-            category: "Oils",
-            currentStock: "8 gallons",
-            reorderLevel: "20 gallons",
-            reqQty: "30 gallons",
-            urgency: "Medium",
-            action: "rejected",
-        },
-        {
-            id: "3",
-            itemName: "Cooking Oil (5L)",
-            sku: "PR-003-2005",
-            category: "Oils",
-            currentStock: "8 gallons",
-            reorderLevel: "20 gallons",
-            reqQty: "30 gallons",
-            urgency: "Medium",
-            reqNotes: "Don't add this t...",
-            action: "pending",
-        },
-        {
-            id: "4",
-            itemName: "Cooking Oil (5L)",
-            sku: "PR-003-2005",
-            category: "Oils",
-            currentStock: "8 gallons",
-            reorderLevel: "20 gallons",
-            reqQty: "30 gallons",
-            urgency: "Medium",
-            action: "approved",
-        },
-    ],
+    initialItems = [],
+    viewType = "requisition",
 }: ApproveRequestDialogProps) {
     const [items, setItems] = useState<RequestItem[]>(initialItems)
 
@@ -209,11 +165,22 @@ export function ApproveRequestDialog({
                             <thead>
                                 <tr className="border-b border-neutral-200 text-neutral-500 text-xs font-semibold">
                                     <th className="text-left py-2 pr-4 font-semibold">Item Name</th>
-                                    <th className="text-left py-2 pr-4 font-semibold">Current Stock</th>
-                                    <th className="text-left py-2 pr-4 font-semibold">Reorder Level</th>
-                                    <th className="text-left py-2 pr-4 font-semibold">Req. Qty</th>
-                                    <th className="text-left py-2 pr-4 font-semibold">Urgency</th>
-                                    <th className="text-left py-2 pr-4 font-semibold">Req. Notes</th>
+                                    {viewType === "requisition" && (
+                                        <>
+                                            <th className="text-left py-2 pr-4 font-semibold">Current Stock</th>
+                                            <th className="text-left py-2 pr-4 font-semibold">Reorder Level</th>
+                                        </>
+                                    )}
+                                    <th className="text-left py-2 pr-4 font-semibold">{viewType === "return" ? "QTY" : "Req. Qty"}</th>
+                                    {viewType === "requisition" && (
+                                        <>
+                                            <th className="text-left py-2 pr-4 font-semibold">Urgency</th>
+                                            <th className="text-left py-2 pr-4 font-semibold">Req. Notes</th>
+                                        </>
+                                    )}
+                                    {viewType === "return" && (
+                                        <th className="text-left py-2 pr-4 font-semibold">Reasons</th>
+                                    )}
                                     <th className="text-left py-2 pr-4 font-semibold">Action</th>
                                     <th className="text-left py-2 font-semibold">Notes</th>
                                 </tr>
@@ -232,25 +199,38 @@ export function ApproveRequestDialog({
                                                 {item.sku} • {item.category}
                                             </div>
                                         </td>
-                                        <td className="py-3 pr-4 text-red-500 font-medium text-sm">
-                                            {item.currentStock}
-                                        </td>
-                                        <td className="py-3 pr-4 text-neutral-700 text-sm">
-                                            {item.reorderLevel}
-                                        </td>
+                                        {viewType === "requisition" && (
+                                            <>
+                                                <td className="py-3 pr-4 text-red-500 font-medium text-sm">
+                                                    {item.currentStock}
+                                                </td>
+                                                <td className="py-3 pr-4 text-neutral-700 text-sm">
+                                                    {item.reorderLevel}
+                                                </td>
+                                            </>
+                                        )}
                                         <td className="py-3 pr-4 text-neutral-700 text-sm">
                                             {item.reqQty}
                                         </td>
-                                        <td className="py-3 pr-4">
-                                            <span
-                                                className={`text-xs font-semibold px-2 py-0.5 rounded ${urgencyStyles[item.urgency]}`}
-                                            >
-                                                {item.urgency}
-                                            </span>
-                                        </td>
-                                        <td className="py-3 pr-4 text-neutral-500 text-xs max-w-[100px] truncate">
-                                            {item.reqNotes ?? "-"}
-                                        </td>
+                                        {viewType === "requisition" && (
+                                            <>
+                                                <td className="py-3 pr-4">
+                                                    <span
+                                                        className={`text-xs font-semibold px-2 py-0.5 rounded ${urgencyStyles[item.urgency]}`}
+                                                    >
+                                                        {item.urgency}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 pr-4 text-neutral-500 text-xs max-w-[100px] truncate">
+                                                    {item.reqNotes ?? "-"}
+                                                </td>
+                                            </>
+                                        )}
+                                        {viewType === "return" && (
+                                            <td className="py-3 pr-4 text-neutral-500 text-xs max-w-[150px] truncate">
+                                                {item.reason ?? "-"}
+                                            </td>
+                                        )}
                                         <td className="py-3 pr-4">
                                             <div className="flex items-center gap-1.5">
                                                 {item.action === "approved" && (
@@ -298,9 +278,13 @@ export function ApproveRequestDialog({
                                             </div>
                                         </td>
                                         <td className="py-3">
-                                            <button className="text-xs text-blue-500 underline hover:text-blue-700">
-                                                Add
-                                            </button>
+                                            {item.notes ? (
+                                                <span className="text-xs text-neutral-600">{item.notes}</span>
+                                            ) : (
+                                                <button className="text-xs text-blue-500 underline hover:text-blue-700">
+                                                    Add
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

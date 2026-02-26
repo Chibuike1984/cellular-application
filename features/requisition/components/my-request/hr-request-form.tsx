@@ -117,7 +117,9 @@ export function HRRequestForm({ requisitionType }: HRRequestFormProps) {
 
             const { error: uploadError } = await supabase.storage
                 .from("request-documents")
-                .upload(filePath, file)
+                .upload(filePath, file, {
+                upsert: true,
+                })
 
             if (uploadError) throw uploadError
 
@@ -221,7 +223,10 @@ export function HRRequestForm({ requisitionType }: HRRequestFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className='text-[#3E3E3E] text-xs font-normal'>Leave Type</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                value={field.value}
+                                                >
                                                 <FormControl>
                                                     <SelectTrigger className='w-full border-[#CCCCCC] rounded-full'>
                                                         <SelectValue placeholder='Select leave type...' />
@@ -277,7 +282,10 @@ export function HRRequestForm({ requisitionType }: HRRequestFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className='text-[#3E3E3E] text-xs font-normal'>Permission Type*</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                value={field.value}
+                                                >
                                                 <FormControl>
                                                     <SelectTrigger className='w-full border-[#CCCCCC] rounded-full'>
                                                         <SelectValue placeholder='Select type...' />
@@ -345,7 +353,10 @@ export function HRRequestForm({ requisitionType }: HRRequestFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className='text-[#3E3E3E] text-xs font-normal'>Emergency Type*</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                value={field.value}
+                                                >
                                                 <FormControl>
                                                     <SelectTrigger className='w-full border-[#CCCCCC] rounded-full'>
                                                         <SelectValue placeholder='Select emergency...' />
@@ -435,37 +446,36 @@ export function HRRequestForm({ requisitionType }: HRRequestFormProps) {
                                 </label>
 
                                 {isEmergencyAbsent ? (
-                                    <div
-                                        className='border-2 border-dashed rounded-lg p-8 text-center space-y-2'
-                                        style={{
-                                            background: '#FDE8EC',
-                                            borderColor: 'rgba(252, 165, 165, 1)'
-                                        }}
-                                    >
-                                        <Upload
-                                            className='w-8 h-8 mx-auto mb-2'
-                                            style={{ color: '#5D091A' }}
+                                    <div className="relative">
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files[0]) {
+                                                    setFile(e.target.files[0])
+                                                }
+                                            }}
                                         />
-                                        <p
+
+                                        <div
+                                            className='border-2 border-dashed rounded-lg p-8 text-center space-y-2'
                                             style={{
-                                                fontSize: '10px',
-                                                fontWeight: '400',
-                                                lineHeight: '100%'
+                                                background: '#FDE8EC',
+                                                borderColor: 'rgba(252, 165, 165, 1)'
                                             }}
-                                            className='text-red-700'
                                         >
-                                            Click to upload
-                                        </p>
-                                        <p
-                                            style={{
-                                                fontSize: '10px',
-                                                fontWeight: '400',
-                                                lineHeight: '100%'
-                                            }}
-                                            className='text-red-600'
-                                        >
-                                            PDF, JPG, PNG (Max 5MB)
-                                        </p>
+                                            <Upload
+                                                className='w-8 h-8 mx-auto mb-2'
+                                                style={{ color: '#5D091A' }}
+                                            />
+                                            <p className="text-xs text-red-700">
+                                                {file ? file.name : "Click to upload"}
+                                            </p>
+                                            <p className='text-[10px] text-red-600'>
+                                                PDF, JPG, PNG (Max 5MB)
+                                            </p>
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="relative">
